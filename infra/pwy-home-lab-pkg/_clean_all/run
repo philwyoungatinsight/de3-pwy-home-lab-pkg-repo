@@ -1,0 +1,633 @@
+#!/usr/bin/env python3
+"""
+infra/pwy-home-lab-pkg/_clean_all/run
+
+Pre-Terraform purge for the pwy-homelab deployment: runs all provider-specific
+cleanup scripts in the correct order before Terraform destroy.
+
+Purge order (compute/VMs before networking, reverse of build order):
+  1. Proxmox  — stop and delete all VMs via the Proxmox REST API
+  2. GCP      — delete GKE clusters via gcloud
+  3. UniFi    — clear port profiles and delete managed VLANs via UniFi API
+  4. MaaS     — release and delete all machine records via SSH
+
+All config is read exclusively from pwy-home-lab-pkg paths so this script is
+scoped to the deployment package and not affected by changes in provider
+package examples or other packages.
+
+Called by framework/clean-all/run before Stage 1 (state lock removal).
+Input (via environment variables set by the framework):
+  _CLEAN_ALL_CONFIG_PARAMS  JSON-encoded all_config_params (public YAML)
+  _CLEAN_ALL_SECRET_PARAMS  JSON-encoded all_secret_params (decrypted SOPS)
+"""
+
+import base64
+import json
+import os
+import shutil
+import ssl
+import subprocess
+import sys
+import time
+from urllib.error import HTTPError
+from urllib.parse import urlencode, urlparse
+from urllib.request import Request, urlopen
+
+_PKG_PREFIX = "pwy-home-lab-pkg/"
+
+
+def _scoped(all_params):
+    """Return only config entries whose path is under pwy-home-lab-pkg/."""
+    return {k: v for k, v in all_params.items() if k.startswith(_PKG_PREFIX)}
+
+
+def _ancestor_get(all_params, path, key):
+    """Return the nearest ancestor value for key, walking up path components."""
+    parts = path.split("/")
+    result = None
+    for i in range(1, len(parts) + 1):
+        prefix = "/".join(parts[:i])
+        entry = all_params.get(prefix)
+        if isinstance(entry, dict) and key in entry:
+            result = entry[key]
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Proxmox purge
+# ---------------------------------------------------------------------------
+
+def _proxmox_api(ctx, endpoint, path, token_id, token_sec, method="GET", params=None):
+    url  = f"{endpoint}/api2/json/{path}"
+    hdrs = {"Authorization": f"PVEAPIToken={token_id}={token_sec}"}
+    body = None
+    if params is not None:
+        body = urlencode(params).encode()
+        hdrs["Content-Type"] = "application/x-www-form-urlencoded"
+    req = Request(url, data=body, headers=hdrs, method=method)
+    try:
+        with urlopen(req, context=ctx, timeout=30) as resp:
+            return json.loads(resp.read()).get("data")
+    except HTTPError as e:
+        snippet = e.read().decode(errors="replace")[:120]
+        print(f"    HTTP {e.code} {method} .../{path}: {snippet}")
+        return None
+    except Exception as e:
+        print(f"    {method} .../{path}: {e}")
+        return None
+
+
+def purge_proxmox(config_params, secret_params):
+    print("--- proxmox pre-purge: Proxmox VM deletion via REST API ---")
+
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode    = ssl.CERT_NONE
+
+    # Build endpoint → token map
+    endpoint_to_token: dict = {}
+    for path, sec in secret_params.items():
+        if not isinstance(sec, dict):
+            continue
+        if sec.get("_provider_proxmox_token_id") and sec.get("_provider_proxmox_token_secret"):
+            t = {"id": sec["_provider_proxmox_token_id"],
+                 "secret": sec["_provider_proxmox_token_secret"]}
+        else:
+            t = sec.get("token", {})
+            if not (isinstance(t, dict) and t.get("id") and t.get("secret")):
+                continue
+        endpoint = _ancestor_get(config_params, path, "_provider_proxmox_endpoint")
+        if endpoint:
+            endpoint_to_token[endpoint] = t
+
+    # Find unique (endpoint, node_name) pairs
+    seen_nodes: set = set()
+    nodes: list = []
+    for path, params in config_params.items():
+        if not isinstance(params, dict):
+            continue
+        endpoint  = _ancestor_get(config_params, path, "_provider_proxmox_endpoint")
+        node_name = _ancestor_get(config_params, path, "node_name")
+        if not endpoint or not node_name:
+            continue
+        key = (endpoint, node_name)
+        if key in seen_nodes:
+            continue
+        seen_nodes.add(key)
+        token = endpoint_to_token.get(endpoint, {})
+        nodes.append({
+            "endpoint":     endpoint,
+            "node_name":    node_name,
+            "token_id":     token.get("id", ""),
+            "token_secret": token.get("secret", ""),
+        })
+
+    if not nodes:
+        print("  No Proxmox nodes found in config.")
+        return
+
+    total_deleted = 0
+    for node in nodes:
+        endpoint     = node["endpoint"]
+        node_name    = node["node_name"]
+        token_id     = node["token_id"]
+        token_secret = node["token_secret"]
+
+        if not token_id or not token_secret:
+            print(f"  WARNING: no API token found for node {node_name} — skipping.")
+            continue
+
+        print(f"  Node {node_name} ({endpoint}): listing VMs...")
+        vms = _proxmox_api(ctx, endpoint, f"nodes/{node_name}/qemu", token_id, token_secret)
+        if vms is None:
+            print(f"  WARNING: could not list VMs on {node_name} — node unreachable, skipping.")
+            continue
+
+        print(f"  Found {len(vms)} VM(s).")
+        for vm in vms:
+            vmid   = vm["vmid"]
+            name   = vm.get("name", f"vmid-{vmid}")
+            status = vm.get("status", "unknown")
+            print(f"    [{vmid}] {name}  status={status}")
+            if status == "running":
+                print("      Stopping...")
+                _proxmox_api(ctx, endpoint, f"nodes/{node_name}/qemu/{vmid}/status/stop",
+                             token_id, token_secret, method="POST")
+                time.sleep(2)
+            print("      Deleting (purge=1)...")
+            _proxmox_api(ctx,
+                         endpoint,
+                         f"nodes/{node_name}/qemu/{vmid}?purge=1&destroy-unreferenced-disks=1",
+                         token_id, token_secret, method="DELETE")
+            total_deleted += 1
+
+    print(f"  Purge complete: {total_deleted} VM(s) submitted for deletion.")
+
+
+# ---------------------------------------------------------------------------
+# GCP purge
+# ---------------------------------------------------------------------------
+
+def _find_gke_clusters(config_params):
+    seen     = set()
+    clusters = []
+    for path, params in config_params.items():
+        if not isinstance(params, dict):
+            continue
+        cluster_name = params.get("cluster_name")
+        location     = params.get("location")
+        if not (cluster_name and location):
+            continue
+        project = _ancestor_get(config_params, path, "_provider_gcp_project")
+        if not project:
+            continue
+        entry = (project, location, cluster_name)
+        if entry not in seen:
+            seen.add(entry)
+            clusters.append(entry)
+    return clusters
+
+
+def purge_gcp(config_params, _secret_params):
+    print("--- gcp pre-purge: GKE cluster deletion via gcloud ---")
+
+    if not shutil.which("gcloud"):
+        print("  WARNING: gcloud not found in PATH — skipping GKE purge.")
+        return
+
+    clusters = _find_gke_clusters(config_params)
+    if not clusters:
+        print("  No GKE clusters found in config.")
+        return
+
+    print(f"  Found {len(clusters)} GKE cluster(s) in config:")
+    for project, location, name in clusters:
+        print(f"    {name}  location={location}  project={project}")
+
+    for project, location, cluster_name in clusters:
+        print(f"  Waiting for {cluster_name} to reach a deletable state...")
+        deadline = time.time() + 600
+        while time.time() < deadline:
+            status_r = subprocess.run(
+                ["gcloud", "container", "clusters", "describe", cluster_name,
+                 "--zone", location, "--project", project,
+                 "--format=value(status)"],
+                capture_output=True, text=True, timeout=30,
+            )
+            if status_r.returncode != 0:
+                break
+            status = status_r.stdout.strip()
+            if status in ("RUNNING", "ERROR", "DEGRADED", ""):
+                break
+            print(f"    Status={status}, waiting 15s ...")
+            time.sleep(15)
+        else:
+            print(f"    WARNING: timed out waiting for {cluster_name} — attempting delete anyway")
+
+        print(f"  Deleting {cluster_name} ...")
+        r = subprocess.run(
+            ["gcloud", "container", "clusters", "delete", cluster_name,
+             "--zone", location, "--project", project, "--quiet"],
+            capture_output=True, text=True, timeout=600,
+        )
+        if r.returncode == 0:
+            print(f"    Deleted: {cluster_name}")
+        else:
+            stderr = r.stderr.strip().lower()
+            if "not found" in stderr or "does not exist" in stderr:
+                print(f"    Already gone: {cluster_name}")
+            else:
+                print(f"    WARNING: delete failed: {r.stderr.strip()[:300]}")
+
+    print("  GKE purge complete.")
+
+
+# ---------------------------------------------------------------------------
+# UniFi purge
+# ---------------------------------------------------------------------------
+
+class _UnifiClient:
+    def __init__(self, url, username, password):
+        self.url = url.rstrip("/")
+        self.ctx = ssl.create_default_context()
+        self.ctx.check_hostname = False
+        self.ctx.verify_mode    = ssl.CERT_NONE
+        self.cookies: dict = {}
+        self.csrf_token = ""
+        self._login(username, password)
+
+    def _request(self, method, path, data=None, extra_headers=None):
+        url     = f"{self.url}{path}"
+        headers = {"Content-Type": "application/json"}
+        if self.cookies:
+            headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in self.cookies.items())
+        if extra_headers:
+            headers.update(extra_headers)
+        body = json.dumps(data).encode() if data is not None else None
+        req  = Request(url, data=body, headers=headers, method=method)
+        try:
+            with urlopen(req, context=self.ctx, timeout=30) as resp:
+                for hdr in resp.headers.get_all("Set-Cookie") or []:
+                    name, _, rest = hdr.partition("=")
+                    self.cookies[name.strip()] = rest.split(";")[0].strip()
+                body_bytes = resp.read()
+                return json.loads(body_bytes) if body_bytes else {}, None
+        except HTTPError as e:
+            return None, f"HTTP {e.code}: {e.read().decode()[:300]}"
+
+    def _login(self, username, password):
+        _, err = self._request("POST", "/api/auth/login",
+                               {"username": username, "password": password})
+        if err:
+            raise RuntimeError(f"UniFi login failed: {err}")
+        token = self.cookies.get("TOKEN", "")
+        if token:
+            try:
+                parts  = token.split(".")
+                padded = parts[1] + "=" * (4 - len(parts[1]) % 4)
+                self.csrf_token = json.loads(base64.b64decode(padded)).get("csrfToken", "")
+            except Exception:
+                pass
+
+    def get(self, path):
+        result, err = self._request("GET", path)
+        if err:
+            raise RuntimeError(f"GET {path}: {err}")
+        return result.get("data", result)
+
+    def put(self, path, data):
+        return self._request("PUT", path, data, {"X-Csrf-Token": self.csrf_token})
+
+    def delete(self, path):
+        return self._request("DELETE", path, extra_headers={"X-Csrf-Token": self.csrf_token})
+
+
+def _unifi_clear_portconf_refs(client, managed_profile_ids):
+    if not managed_profile_ids:
+        return
+    devices = client.get("/proxy/network/api/s/default/stat/device")
+    for device in devices:
+        device_id   = device["_id"]
+        device_name = device.get("name", device_id)
+        overrides   = device.get("port_overrides", [])
+        refs = [po for po in overrides if po.get("portconf_id", "") in managed_profile_ids]
+        if not refs:
+            continue
+        print(f"    {device_name}: clearing portconf_id on {len(refs)} port(s)")
+        updated = []
+        for po in overrides:
+            entry = {"number": po["port_idx"]}
+            if po.get("name"):
+                entry["name"] = po["name"]
+            if po.get("portconf_id", "") not in managed_profile_ids and po.get("portconf_id"):
+                entry["portconf_id"] = po["portconf_id"]
+            if po.get("native_networkconf_id"):
+                entry["native_networkconf_id"] = po["native_networkconf_id"]
+            if po.get("excluded_networkconf_ids"):
+                entry["excluded_networkconf_ids"] = po["excluded_networkconf_ids"]
+            updated.append(entry)
+        _, err = client.put(
+            f"/proxy/network/api/s/default/rest/device/{device_id}",
+            {"port_overrides": updated},
+        )
+        if err:
+            print(f"    SKIP {device_name}: {err[:80]}")
+
+
+def _unifi_clear_wlan_refs(client, managed_network_ids):
+    if not managed_network_ids:
+        return
+    all_nets = client.get("/proxy/network/api/s/default/rest/networkconf")
+    default_net_id = next(
+        (n["_id"] for n in all_nets
+         if not n.get("vlan") and n.get("purpose", "") in ("corporate", "")
+         and n.get("name", "").startswith("_DEFAULT")),
+        None,
+    )
+    if not default_net_id:
+        default_net_id = next(
+            (n["_id"] for n in all_nets if n["_id"] not in managed_network_ids), None)
+    if not default_net_id:
+        print("    WARNING: could not find a fallback network for WiFi SSIDs — skipping.")
+        return
+    wlans = client.get("/proxy/network/api/s/default/rest/wlanconf")
+    for wlan in wlans:
+        if wlan.get("networkconf_id", "") not in managed_network_ids:
+            continue
+        wlan_id   = wlan["_id"]
+        wlan_name = wlan.get("name", wlan_id)
+        print(f"    {wlan_name}: re-pointing networkconf_id to default network")
+        updated = dict(wlan)
+        updated["networkconf_id"] = default_net_id
+        _, err = client.put(f"/proxy/network/api/s/default/rest/wlanconf/{wlan_id}", updated)
+        if err:
+            print(f"    SKIP {wlan_name}: {err[:80]}")
+
+
+def _unifi_clear_excluded_refs(client, managed_network_ids):
+    if not managed_network_ids:
+        return
+    devices = client.get("/proxy/network/api/s/default/stat/device")
+    for device in devices:
+        device_id   = device["_id"]
+        device_name = device.get("name", device_id)
+        overrides   = device.get("port_overrides", [])
+        refs = [po for po in overrides
+                if managed_network_ids & set(po.get("excluded_networkconf_ids", []))]
+        if not refs:
+            continue
+        ref_count = sum(
+            len(managed_network_ids & set(po.get("excluded_networkconf_ids", [])))
+            for po in refs
+        )
+        print(f"    {device_name}: clearing {ref_count} network ref(s) on {len(refs)} port(s)")
+        updated = []
+        for po in overrides:
+            entry = {"number": po["port_idx"]}
+            if po.get("name"):
+                entry["name"] = po["name"]
+            if po.get("portconf_id"):
+                entry["portconf_id"] = po["portconf_id"]
+            if po.get("native_networkconf_id"):
+                entry["native_networkconf_id"] = po["native_networkconf_id"]
+            excluded = [x for x in po.get("excluded_networkconf_ids", [])
+                        if x not in managed_network_ids]
+            if excluded:
+                entry["excluded_networkconf_ids"] = excluded
+                if po.get("tagged_vlan_mgmt"):
+                    entry["tagged_vlan_mgmt"] = po["tagged_vlan_mgmt"]
+            if po.get("forward") and po["forward"] != "all":
+                entry["forward"] = po["forward"]
+            updated.append(entry)
+        _, err = client.put(
+            f"/proxy/network/api/s/default/rest/device/{device_id}",
+            {"port_overrides": updated},
+        )
+        if err:
+            print(f"    SKIP {device_name}: {err[:80]}")
+
+
+def purge_unifi(config_params, secret_params):
+    print("--- unifi pre-purge: UniFi VLAN / port-profile deletion via API ---")
+
+    ctrl_url  = None
+    ctrl_path = None
+    for path, params in config_params.items():
+        if isinstance(params, dict) and params.get("_provider_unifi_api_url"):
+            ctrl_url  = params["_provider_unifi_api_url"]
+            ctrl_path = path
+            break
+    if not ctrl_url:
+        print("  No _provider_unifi_api_url found in config — skipping.")
+        return
+
+    managed_vlans: dict = {}
+    managed_profiles: dict = {}
+    for path, params in config_params.items():
+        if not isinstance(params, dict):
+            continue
+        if not (path == ctrl_path or path.startswith(ctrl_path + "/")):
+            continue
+        if "vlans" in params and isinstance(params["vlans"], dict):
+            managed_vlans.update(params["vlans"])
+        if "port_profiles" in params and isinstance(params["port_profiles"], dict):
+            managed_profiles.update(params["port_profiles"])
+
+    if not managed_vlans and not managed_profiles:
+        print("  No managed VLANs or port profiles found in config — skipping.")
+        return
+
+    username, password = "", ""
+    for path, sec in secret_params.items():
+        if not isinstance(sec, dict):
+            continue
+        if not (path == ctrl_path or path.startswith(ctrl_path + "/")):
+            continue
+        if sec.get("_provider_unifi_username") and sec.get("_provider_unifi_password"):
+            username = sec["_provider_unifi_username"]
+            password = sec["_provider_unifi_password"]
+            break
+        if sec.get("username") and sec.get("password"):
+            username = sec["username"]
+            password = sec["password"]
+            break
+    if not username or not password:
+        print("  WARNING: no UniFi credentials found in secrets — skipping.")
+        return
+
+    managed_vlan_id_ints  = {int(v["vlan_id"]) for v in managed_vlans.values()
+                              if isinstance(v, dict) and "vlan_id" in v}
+    managed_profile_names = {p.get("name", k) for k, p in managed_profiles.items()
+                             if isinstance(p, dict)}
+
+    print(f"  Controller       : {ctrl_url}")
+    print(f"  Managed VLANs    : {sorted(managed_vlan_id_ints)}")
+    print(f"  Managed profiles : {sorted(managed_profile_names)}")
+
+    try:
+        client = _UnifiClient(ctrl_url, username, password)
+    except RuntimeError as e:
+        print(f"  WARNING: {e} — skipping UniFi purge.")
+        return
+    print("  Authenticated.")
+
+    all_profiles = client.get("/proxy/network/api/s/default/rest/portconf")
+    all_nets     = client.get("/proxy/network/api/s/default/rest/networkconf")
+
+    managed_profile_ids = {p["_id"] for p in all_profiles
+                           if p.get("name", "") in managed_profile_names}
+    managed_network_ids = {n["_id"] for n in all_nets
+                           if int(n.get("vlan", -1)) in managed_vlan_id_ints}
+
+    print("  Step 1: Clearing port profile assignments from device ports...")
+    _unifi_clear_portconf_refs(client, managed_profile_ids)
+    print("  Step 2: Re-pointing WiFi SSIDs off managed networks...")
+    _unifi_clear_wlan_refs(client, managed_network_ids)
+    print("  Step 3: Clearing excluded_networkconf_ids for managed networks...")
+    _unifi_clear_excluded_refs(client, managed_network_ids)
+
+    print("  Step 4: Deleting managed port profiles...")
+    to_delete_profiles = [p for p in all_profiles if p.get("name", "") in managed_profile_names]
+    if not to_delete_profiles:
+        print("    None found on controller.")
+    for profile in to_delete_profiles:
+        name = profile["name"]
+        pid  = profile["_id"]
+        print(f"    DELETE port profile: {name!r} (id={pid})")
+        _, err = client.delete(f"/proxy/network/api/s/default/rest/portconf/{pid}")
+        if err:
+            print(f"      {'Already gone' if '404' in err else 'ERROR'}: {err}")
+
+    print("  Step 5: Deleting managed networks (VLANs)...")
+    to_delete_nets = [n for n in all_nets
+                      if int(n.get("vlan", -1)) in managed_vlan_id_ints]
+    if not to_delete_nets:
+        print("    None found on controller.")
+    for net in to_delete_nets:
+        name = net.get("name", "?")
+        nid  = net["_id"]
+        vlan = net.get("vlan", "?")
+        print(f"    DELETE network: {name!r} (VLAN {vlan}, id={nid})")
+        _, err = client.delete(f"/proxy/network/api/s/default/rest/networkconf/{nid}")
+        if err:
+            print(f"      {'Already gone' if '404' in err else 'ERROR'}: {err}")
+
+    print("  UniFi purge complete.")
+
+
+# ---------------------------------------------------------------------------
+# MaaS purge
+# ---------------------------------------------------------------------------
+
+def _ssh(maas_host, cmd):
+    args = [
+        "ssh",
+        "-o", "StrictHostKeyChecking=no",
+        "-o", "UserKnownHostsFile=/dev/null",
+        "-o", "ConnectTimeout=10",
+        f"ubuntu@{maas_host}",
+        cmd,
+    ]
+    try:
+        r = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           text=True, timeout=60)
+        if r.returncode != 0 and r.stderr.strip():
+            print(f"  SSH stderr: {r.stderr.strip()[:200]}")
+        return r.stdout
+    except Exception as e:
+        print(f"  SSH error connecting to {maas_host}: {e}")
+        return None
+
+
+def purge_maas(config_params, _secret_params):
+    print("--- maas pre-purge: MaaS machine deletion via SSH ---")
+
+    maas_ip = None
+    for params in config_params.values():
+        if not isinstance(params, dict):
+            continue
+        api_url = params.get("_provider_maas_api_url", "")
+        if api_url:
+            try:
+                maas_ip = urlparse(api_url).hostname
+                break
+            except Exception:
+                pass
+
+    if not maas_ip:
+        print("  WARNING: could not find MaaS server IP (_provider_maas_api_url) "
+              "in config_params — skipping purge.")
+        return
+
+    print(f"  MaaS server: {maas_ip}")
+
+    out = _ssh(maas_ip, "sudo maas maas-admin machines read 2>/dev/null")
+    if not out or not out.strip():
+        print("  WARNING: could not list machines from MaaS — skipping purge.")
+        return
+
+    try:
+        machines = json.loads(out)
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"  WARNING: failed to parse machines list: {e} — skipping purge.")
+        return
+
+    if not machines:
+        print("  No machines found in MaaS — nothing to purge.")
+        return
+
+    print(f"  Found {len(machines)} machine(s).")
+
+    has_deployed = False
+    system_ids = []
+    for m in machines:
+        system_id   = m["system_id"]
+        hostname    = m.get("hostname", system_id)
+        status_name = m.get("status_name", "")
+        status      = m.get("status", -1)
+        print(f"    [{system_id}] {hostname}  status={status_name}")
+        if status == 6 or status_name == "Deployed":
+            print("      Releasing (status=Deployed — must release before delete)...")
+            _ssh(maas_ip, f"sudo maas maas-admin machine release {system_id} 2>/dev/null")
+            has_deployed = True
+        system_ids.append((system_id, hostname))
+
+    if has_deployed:
+        print("  Waiting 10s for releases to start before deleting...")
+        time.sleep(10)
+
+    deleted = 0
+    for system_id, hostname in system_ids:
+        print(f"  Deleting {hostname} ({system_id})...")
+        _ssh(maas_ip, f"sudo maas maas-admin machine delete {system_id} 2>/dev/null")
+        deleted += 1
+
+    print(f"  Purge complete: {deleted} machine(s) deleted.")
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main(all_config_params, all_secret_params):
+    config_params = _scoped(all_config_params)
+    secret_params = _scoped(all_secret_params)
+
+    purge_proxmox(config_params, secret_params)
+    print()
+    purge_gcp(config_params, secret_params)
+    print()
+    purge_unifi(config_params, secret_params)
+    print()
+    purge_maas(config_params, secret_params)
+
+
+if __name__ == "__main__":
+    config_json = os.environ.get("_CLEAN_ALL_CONFIG_PARAMS", "{}")
+    secret_json = os.environ.get("_CLEAN_ALL_SECRET_PARAMS", "{}")
+    try:
+        all_config_params = json.loads(config_json)
+        all_secret_params = json.loads(secret_json)
+    except json.JSONDecodeError as e:
+        sys.exit(f"pwy-home-lab-pkg _clean_all: failed to parse input JSON: {e}")
+    main(all_config_params, all_secret_params)

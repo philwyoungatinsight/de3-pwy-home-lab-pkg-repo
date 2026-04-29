@@ -1,0 +1,27 @@
+include "root" {
+  path   = find_in_parent_folders("root.hcl")
+  expose = true
+}
+dependency "lifecycle_parent" {
+  config_path = ".."
+  mock_outputs = {
+    system_id = "placeholder-system-id"
+    hostname  = "placeholder-hostname"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "apply"]
+}
+
+terraform {
+  source = "${include.root.locals.modules_dir}/maas_lifecycle_ready"
+}
+
+locals {
+  up = include.root.locals.unit_params
+}
+
+inputs = {
+  system_id        = dependency.lifecycle_parent.outputs.system_id
+  maas_host        = try(local.up.maas_host, "")
+  provisioning_ip  = try(local.up.provisioning_ip, "")
+  wait_timeout     = try(local.up.commission_wait_timeout, "2400")
+}
