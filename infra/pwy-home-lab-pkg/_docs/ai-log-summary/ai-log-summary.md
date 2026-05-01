@@ -4,6 +4,16 @@ Reverse-chronological summary of significant changes made by Claude in this repo
 
 ---
 
+## 2026-05-01 — Fix set_env.sh git root detection for symlinked package dirs
+
+- `./run -A de3-gui` failed because `infra/de3-gui-pkg` is a symlink into `de3-gui-pkg-repo`; git resolved the physical path and returned the wrong toplevel
+- `set_env.sh` and `framework-utils.sh` both used `git rev-parse --show-toplevel` to locate the deployment repo root, which breaks when CWD is inside a symlinked directory belonging to another git repo
+- Fixed `set_env.sh` to derive `_GIT_ROOT` from `dirname "${BASH_SOURCE[0]}"` — `set_env.sh` is always at the deployment repo root, so its own sourced path gives the correct root
+- Fixed `framework-utils.sh` to use `${_GIT_ROOT:-$(git rev-parse --show-toplevel)}` so the already-correct `_GIT_ROOT` is reused instead of re-running git
+- Change committed to `de3-framework-pkg-repo` as `f4420c4`; `./run -A de3-gui` now succeeds end-to-end
+
+---
+
 ## 2026-05-01 — Revamp Git Repos: Fix Symlinks, Move Config
 
 - Created `~/git/de3-ext-packages/de3-runner/main` symlink so all generated repos' `_ext_packages/de3-runner/main` chain resolves to the working `~/git/de3-runner/main`
