@@ -1,6 +1,6 @@
 pwy-home-lab-pkg:
   _provides_capability:
-  - pwy-home-lab-pkg: 1.0.0
+  - pwy-home-lab-pkg: 1.1.0
   _requires_capability:
   - unifi-pkg: '>=1.0.0'
   - proxmox-pkg: '>=1.0.0'
@@ -29,11 +29,13 @@ pwy-home-lab-pkg:
       force_destroy: true
       versioning_enabled: false
     pwy-home-lab-pkg/_stack/aws/us-east-1/dev/test-bucket-2/all-config:
-      _unit_purpose: Uploads the merged stack config as an object to the S3 test bucket. Validates config export tooling on AWS.
+      _unit_purpose: Uploads the merged stack config as an object to the S3 test bucket.
+        Validates config export tooling on AWS.
       bucket_name: pwy-tg-stack-hmc-bucket
       force_destroy: true
     pwy-home-lab-pkg/_stack/aws/us-east-1/dev/test-bucket/all-config:
-      _unit_purpose: Uploads the merged stack config as an object to the S3 test bucket. Validates config export tooling on AWS.
+      _unit_purpose: Uploads the merged stack config as an object to the S3 test bucket.
+        Validates config export tooling on AWS.
       bucket_name: pwy-tg-stack-hmc-bucket
       force_destroy: true
     pwy-home-lab-pkg/_stack/azure/eastus/dev:
@@ -60,7 +62,8 @@ pwy-home-lab-pkg:
       _region: us-central1
       _wave: cloud.k8s
     pwy-home-lab-pkg/_stack/gcp/us-central1/dev/clusters/gke-cluster-dev:
-      _unit_purpose: Development GKE cluster (1x e2-medium node, us-central1-f). Used to test Kubernetes-targeting automation and validates the cloud.k8s wave.
+      _unit_purpose: Development GKE cluster (1x e2-medium node, us-central1-f). Used
+        to test Kubernetes-targeting automation and validates the cloud.k8s wave.
       cluster_name: tg-lab-stack-gke-dev
       disk_size_gb: 50
       location: us-central1-f
@@ -69,14 +72,16 @@ pwy-home-lab-pkg:
     pwy-home-lab-pkg/_stack/gcp/us-central1/dev/clusters/gke-cluster-dev-2/kubeconfig:
       _extra_providers:
       - 'null'
-      _modules_dir: default-pkg/_modules
-      _unit_purpose: Writes the GKE cluster credentials to $_DYNAMIC_DIR/kubeconfig/gke-cluster-dev.yaml after cluster creation. Kept separate from ~/.kube/config.
+      _modules_dir: _framework-pkg/_modules
+      _unit_purpose: Writes the GKE cluster credentials to $_DYNAMIC_DIR/kubeconfig/gke-cluster-dev.yaml
+        after cluster creation. Kept separate from ~/.kube/config.
       _wave: cloud.k8s
     pwy-home-lab-pkg/_stack/gcp/us-central1/dev/clusters/gke-cluster-dev/kubeconfig:
       _extra_providers:
       - 'null'
-      _modules_dir: default-pkg/_modules
-      _unit_purpose: Writes the GKE cluster credentials to $_DYNAMIC_DIR/kubeconfig/gke-cluster-dev.yaml after cluster creation. Kept separate from ~/.kube/config.
+      _modules_dir: _framework-pkg/_modules
+      _unit_purpose: Writes the GKE cluster credentials to $_DYNAMIC_DIR/kubeconfig/gke-cluster-dev.yaml
+        after cluster creation. Kept separate from ~/.kube/config.
       _wave: cloud.k8s
     pwy-home-lab-pkg/_stack/gcp/us-central1/dev/test-bucket:
       _env: dev
@@ -91,12 +96,14 @@ pwy-home-lab-pkg:
     pwy-home-lab-pkg/_stack/gcp/us-central1/dev/test-bucket-pwy-3/all-config:
       _env: dev
       _region: us-central1
-      _unit_purpose: Uploads the merged stack config to the second GCS test bucket. Mirrors the all-config pattern on a separate bucket.
+      _unit_purpose: Uploads the merged stack config to the second GCS test bucket.
+        Mirrors the all-config pattern on a separate bucket.
       _wave: cloud.storage
     pwy-home-lab-pkg/_stack/gcp/us-central1/dev/test-bucket/all-config:
       _env: dev
       _region: us-central1
-      _unit_purpose: Uploads the merged stack config as a JSON object to the GCS test bucket. Validates config export tooling.
+      _unit_purpose: Uploads the merged stack config as a JSON object to the GCS test
+        bucket. Validates config export tooling.
       _wave: cloud.storage
     pwy-home-lab-pkg/_stack/maas/pwy-homelab:
       _browser_url: http://{ansible_host}:5240/MAAS/r/machines
@@ -111,7 +118,11 @@ pwy-home-lab-pkg:
       maas_host: 10.0.10.11
       provisioning_subnet: 10.0.12.0/24
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-01:
-      _unit_purpose: 'MinisForum MS-01 #1. Deployed by MaaS as Debian 13 (trixie). Power: AMT (10.0.11.10) with mgmt_wake_via_plug: AMT firmware crashes after a few minutes; Tapo P125 smart plug (192.168.1.231) bounces AC power to restore AMT standby before issuing wsman commands. Provisioning IP: 10.0.12.237. Post-deploy becomes Proxmox node ms01-01 at 10.0.10.116.'
+      _unit_purpose: 'MinisForum MS-01 #1. Deployed by MaaS as Debian 13 (trixie).
+        Power: AMT (10.0.11.10) with mgmt_wake_via_plug: AMT firmware crashes after
+        a few minutes; Tapo P125 smart plug (192.168.1.231) bounces AC power to restore
+        AMT standby before issuing wsman commands. Provisioning IP: 10.0.12.237. Post-deploy
+        becomes Proxmox node ms01-01 at 10.0.10.116.'
       _wave: maas.lifecycle.new
       additional_tags:
       - role_mgmt_group_ms01
@@ -119,9 +130,12 @@ pwy-home-lab-pkg:
       amt_address: 10.0.11.10
       amt_port: 16993
       ansible_host: 10.0.12.237
-      ansible_ssh_common_args: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %h:%p ubuntu@10.0.12.2"
+      ansible_ssh_common_args: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+        -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+        -W %h:%p ubuntu@10.0.12.2"
       cloud_init_ssh_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHx+TZoIE4v2qQDhtYDHN/eGFdtl1Pea5j8WUV1klYXT pyoung@CFXL5YHY09
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHx+TZoIE4v2qQDhtYDHN/eGFdtl1Pea5j8WUV1klYXT
+        pyoung@CFXL5YHY09
       cloud_init_user: debian
       cloud_public_ip: 10.0.10.116
       commission_wait_timeout: '1800'
@@ -138,23 +152,42 @@ pwy-home-lab-pkg:
       smart_plug_host: 192.168.1.231
       smart_plug_type: tapo
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-01/commission:
-      _unit_purpose: 'Commissioning (ms01-01): MaaS PXE-boots the machine into a minimal environment, discovers hardware (CPUs, RAM, disks, NICs), and records the inventory. Short-circuits if machine is already Ready or beyond. Detects stuck-commissioning (machine powered off while MaaS thinks it is running) and aborts before re-triggering.'
+      _unit_purpose: 'Commissioning (ms01-01): MaaS PXE-boots the machine into a minimal
+        environment, discovers hardware (CPUs, RAM, disks, NICs), and records the
+        inventory. Short-circuits if machine is already Ready or beyond. Detects stuck-commissioning
+        (machine powered off while MaaS thinks it is running) and aborts before re-triggering.'
       _wave: maas.lifecycle.commissioning
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-01/commission/ready:
-      _unit_purpose: 'Ready (ms01-01): Waits for MaaS to confirm the machine reached Ready state after commissioning. Configures network interfaces (static or DHCP) once Ready. Short-circuits if machine is already Allocated, Deploying, or Deployed.'
+      _unit_purpose: 'Ready (ms01-01): Waits for MaaS to confirm the machine reached
+        Ready state after commissioning. Configures network interfaces (static or
+        DHCP) once Ready. Short-circuits if machine is already Allocated, Deploying,
+        or Deployed.'
       _wave: maas.lifecycle.ready
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-01/commission/ready/allocated:
-      _unit_purpose: 'Allocated (ms01-01): Reserves the Ready machine exclusively for this deployment so no other MaaS consumer can claim it. Sets the target OS/distro on the machine record. Short-circuits if already Allocated or beyond.'
+      _unit_purpose: 'Allocated (ms01-01): Reserves the Ready machine exclusively
+        for this deployment so no other MaaS consumer can claim it. Sets the target
+        OS/distro on the machine record. Short-circuits if already Allocated or beyond.'
       _wave: maas.lifecycle.allocated
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-01/commission/ready/allocated/deploying:
-      _unit_purpose: 'Deploying (ms01-01): Triggers OS installation — MaaS PXE-boots the machine into the ephemeral installer, writes the OS image to disk, injects cloud-init user-data (SSH keys, users, packages), and reboots into the installed OS. Short-circuits if already Deploying or Deployed.'
+      _unit_purpose: 'Deploying (ms01-01): Triggers OS installation — MaaS PXE-boots
+        the machine into the ephemeral installer, writes the OS image to disk, injects
+        cloud-init user-data (SSH keys, users, packages), and reboots into the installed
+        OS. Short-circuits if already Deploying or Deployed.'
       _wave: maas.lifecycle.deploying
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-01/commission/ready/allocated/deploying/deployed:
-      _unit_purpose: 'Deployed (ms01-01): Polls MaaS until the machine reaches Deployed state (OS fully installed and running). Runs a power-on watchdog every 5 minutes to recover machines that power off mid-install. Optionally SSH-verifies the public IP. On Terraform destroy, releases the machine back to Ready.'
+      _unit_purpose: 'Deployed (ms01-01): Polls MaaS until the machine reaches Deployed
+        state (OS fully installed and running). Runs a power-on watchdog every 5 minutes
+        to recover machines that power off mid-install. Optionally SSH-verifies the
+        public IP. On Terraform destroy, releases the machine back to Ready.'
       _wave: maas.lifecycle.deployed
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-02:
       _skip_on_build: false
-      _unit_purpose: 'MinisForum MS-01 #2. Deployed by MaaS as Rocky Linux 9. Power: AMT (10.0.11.11, port 16993) + smart plug (Tapo P125, 192.168.2.105) for mgmt_wake_via_plug — AMT loses standby when fully off; precheck bounces plug first to restore standby, then AMT sets PXE boot override. Plain managed host at 10.0.10.117. Provisioning IP: 10.0.12.239 (DHCP on VLAN 12). OVS bridge on 10G NIC (MikroTik sfpplus3) for cloud_public — see bridges: below and scripts/ai-only-scripts/configure-plain-host-ovs.'
+      _unit_purpose: 'MinisForum MS-01 #2. Deployed by MaaS as Rocky Linux 9. Power:
+        AMT (10.0.11.11, port 16993) + smart plug (Tapo P125, 192.168.2.105) for mgmt_wake_via_plug
+        — AMT loses standby when fully off; precheck bounces plug first to restore
+        standby, then AMT sets PXE boot override. Plain managed host at 10.0.10.117.
+        Provisioning IP: 10.0.12.239 (DHCP on VLAN 12). OVS bridge on 10G NIC (MikroTik
+        sfpplus3) for cloud_public — see bridges: below and scripts/ai-only-scripts/configure-plain-host-ovs.'
       _wave: maas.lifecycle.new
       additional_tags:
       - role_mgmt_group_ms01
@@ -169,7 +202,8 @@ pwy-home-lab-pkg:
         nic: enp2s0f0np0
         technology: ovs
       cloud_init_ssh_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHx+TZoIE4v2qQDhtYDHN/eGFdtl1Pea5j8WUV1klYXT pyoung@CFXL5YHY09
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHx+TZoIE4v2qQDhtYDHN/eGFdtl1Pea5j8WUV1klYXT
+        pyoung@CFXL5YHY09
       cloud_init_user: rocky
       cloud_public_ip: 10.0.10.117
       deploy_distro: rocky-9
@@ -184,23 +218,39 @@ pwy-home-lab-pkg:
       smart_plug_host: 192.168.2.105
       smart_plug_type: tapo
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-02/commission:
-      _unit_purpose: 'Commissioning (ms01-02): MaaS PXE-boots the machine into a minimal environment, discovers hardware (CPUs, RAM, disks, NICs), and records the inventory. Short-circuits if machine is already Ready or beyond. Detects stuck-commissioning (machine powered off while MaaS thinks it is running) and aborts before re-triggering.'
+      _unit_purpose: 'Commissioning (ms01-02): MaaS PXE-boots the machine into a minimal
+        environment, discovers hardware (CPUs, RAM, disks, NICs), and records the
+        inventory. Short-circuits if machine is already Ready or beyond. Detects stuck-commissioning
+        (machine powered off while MaaS thinks it is running) and aborts before re-triggering.'
       _wave: maas.lifecycle.commissioning
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-02/commission/ready:
-      _unit_purpose: 'Ready (ms01-02): Waits for MaaS to confirm the machine reached Ready state after commissioning. Configures network interfaces (static or DHCP) once Ready. Short-circuits if machine is already Allocated, Deploying, or Deployed.'
+      _unit_purpose: 'Ready (ms01-02): Waits for MaaS to confirm the machine reached
+        Ready state after commissioning. Configures network interfaces (static or
+        DHCP) once Ready. Short-circuits if machine is already Allocated, Deploying,
+        or Deployed.'
       _wave: maas.lifecycle.ready
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-02/commission/ready/allocated:
-      _unit_purpose: 'Allocated (ms01-02): Reserves the Ready machine exclusively for this deployment so no other MaaS consumer can claim it. Sets the target OS/distro on the machine record. Short-circuits if already Allocated or beyond.'
+      _unit_purpose: 'Allocated (ms01-02): Reserves the Ready machine exclusively
+        for this deployment so no other MaaS consumer can claim it. Sets the target
+        OS/distro on the machine record. Short-circuits if already Allocated or beyond.'
       _wave: maas.lifecycle.allocated
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-02/commission/ready/allocated/deploying:
-      _unit_purpose: 'Deploying (ms01-02): Triggers OS installation — MaaS PXE-boots the machine into the ephemeral installer, writes the OS image to disk, injects cloud-init user-data (SSH keys, users, packages), and reboots into the installed OS. Short-circuits if already Deploying or Deployed.'
+      _unit_purpose: 'Deploying (ms01-02): Triggers OS installation — MaaS PXE-boots
+        the machine into the ephemeral installer, writes the OS image to disk, injects
+        cloud-init user-data (SSH keys, users, packages), and reboots into the installed
+        OS. Short-circuits if already Deploying or Deployed.'
       _wave: maas.lifecycle.deploying
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-02/commission/ready/allocated/deploying/deployed:
-      _unit_purpose: 'Deployed (ms01-02): Polls MaaS until the machine reaches Deployed state (OS fully installed and running). Runs a power-on watchdog every 5 minutes to recover machines that power off mid-install. Optionally SSH-verifies the public IP. On Terraform destroy, releases the machine back to Ready.'
+      _unit_purpose: 'Deployed (ms01-02): Polls MaaS until the machine reaches Deployed
+        state (OS fully installed and running). Runs a power-on watchdog every 5 minutes
+        to recover machines that power off mid-install. Optionally SSH-verifies the
+        public IP. On Terraform destroy, releases the machine back to Ready.'
       _wave: maas.lifecycle.deployed
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-03:
       _skip_on_build: false
-      _unit_purpose: 'MinisForum MS-01 #3. Deployed by MaaS as Ubuntu 24.04. Power: AMT (10.0.11.12, port 16993). Plain managed host at 10.0.10.118. OVS bridge on 10G NIC (MikroTik sfpplus4) for cloud_public — see bridges: below and scripts/ai-only-scripts/configure-plain-host-ovs.'
+      _unit_purpose: 'MinisForum MS-01 #3. Deployed by MaaS as Ubuntu 24.04. Power:
+        AMT (10.0.11.12, port 16993). Plain managed host at 10.0.10.118. OVS bridge
+        on 10G NIC (MikroTik sfpplus4) for cloud_public — see bridges: below and scripts/ai-only-scripts/configure-plain-host-ovs.'
       _wave: maas.lifecycle.new
       additional_tags:
       - role_mgmt_group_ms01
@@ -215,7 +265,8 @@ pwy-home-lab-pkg:
         nic: enp2s0f0np0
         technology: ovs
       cloud_init_ssh_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHx+TZoIE4v2qQDhtYDHN/eGFdtl1Pea5j8WUV1klYXT pyoung@CFXL5YHY09
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHx+TZoIE4v2qQDhtYDHN/eGFdtl1Pea5j8WUV1klYXT
+        pyoung@CFXL5YHY09
       cloud_init_user: ubuntu
       cloud_public_ip: 10.0.10.118
       deploy_distro: noble
@@ -229,22 +280,38 @@ pwy-home-lab-pkg:
       smart_plug_host: 192.168.2.210
       smart_plug_type: tapo
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-03/commission:
-      _unit_purpose: 'Commissioning (ms01-03): MaaS PXE-boots the machine into a minimal environment, discovers hardware (CPUs, RAM, disks, NICs), and records the inventory. Short-circuits if machine is already Ready or beyond. Detects stuck-commissioning (machine powered off while MaaS thinks it is running) and aborts before re-triggering.'
+      _unit_purpose: 'Commissioning (ms01-03): MaaS PXE-boots the machine into a minimal
+        environment, discovers hardware (CPUs, RAM, disks, NICs), and records the
+        inventory. Short-circuits if machine is already Ready or beyond. Detects stuck-commissioning
+        (machine powered off while MaaS thinks it is running) and aborts before re-triggering.'
       _wave: maas.lifecycle.commissioning
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-03/commission/ready:
-      _unit_purpose: 'Ready (ms01-03): Waits for MaaS to confirm the machine reached Ready state after commissioning. Configures network interfaces (static or DHCP) once Ready. Short-circuits if machine is already Allocated, Deploying, or Deployed.'
+      _unit_purpose: 'Ready (ms01-03): Waits for MaaS to confirm the machine reached
+        Ready state after commissioning. Configures network interfaces (static or
+        DHCP) once Ready. Short-circuits if machine is already Allocated, Deploying,
+        or Deployed.'
       _wave: maas.lifecycle.ready
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-03/commission/ready/allocated:
-      _unit_purpose: 'Allocated (ms01-03): Reserves the Ready machine exclusively for this deployment so no other MaaS consumer can claim it. Sets the target OS/distro on the machine record. Short-circuits if already Allocated or beyond.'
+      _unit_purpose: 'Allocated (ms01-03): Reserves the Ready machine exclusively
+        for this deployment so no other MaaS consumer can claim it. Sets the target
+        OS/distro on the machine record. Short-circuits if already Allocated or beyond.'
       _wave: maas.lifecycle.allocated
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-03/commission/ready/allocated/deploying:
-      _unit_purpose: 'Deploying (ms01-03): Triggers OS installation — MaaS PXE-boots the machine into the ephemeral installer, writes the OS image to disk, injects cloud-init user-data (SSH keys, users, packages), and reboots into the installed OS. Short-circuits if already Deploying or Deployed.'
+      _unit_purpose: 'Deploying (ms01-03): Triggers OS installation — MaaS PXE-boots
+        the machine into the ephemeral installer, writes the OS image to disk, injects
+        cloud-init user-data (SSH keys, users, packages), and reboots into the installed
+        OS. Short-circuits if already Deploying or Deployed.'
       _wave: maas.lifecycle.deploying
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-03/commission/ready/allocated/deploying/deployed:
-      _unit_purpose: 'Deployed (ms01-03): Polls MaaS until the machine reaches Deployed state (OS fully installed and running). Runs a power-on watchdog every 5 minutes to recover machines that power off mid-install. Optionally SSH-verifies the public IP. On Terraform destroy, releases the machine back to Ready.'
+      _unit_purpose: 'Deployed (ms01-03): Polls MaaS until the machine reaches Deployed
+        state (OS fully installed and running). Runs a power-on watchdog every 5 minutes
+        to recover machines that power off mid-install. Optionally SSH-verifies the
+        public IP. On Terraform destroy, releases the machine back to Ready.'
       _wave: maas.lifecycle.deployed
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/pxe-test-vm-1:
-      _unit_purpose: 'MaaS machine entry for the PXE pipeline validation VM. Power driver: Proxmox API on pve-1. Deploying Ubuntu 24.04 validates DHCP, PXE boot, commissioning, and OS deployment through the full MaaS pipeline.'
+      _unit_purpose: 'MaaS machine entry for the PXE pipeline validation VM. Power
+        driver: Proxmox API on pve-1. Deploying Ubuntu 24.04 validates DHCP, PXE boot,
+        commissioning, and OS deployment through the full MaaS pipeline.'
       _wave: maas.test.proxmox-vms
       cloud_init_user: ubuntu
       deploy_distro: noble
@@ -254,19 +321,32 @@ pwy-home-lab-pkg:
       release_erase: false
       skip_ssh_check: true
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/pxe-test-vm-1/commission:
-      _unit_purpose: 'Commissioning (pxe-test-vm-1): MaaS PXE-boots the Proxmox test VM into a minimal environment, discovers its hardware, and records the inventory. Short-circuits if machine is already Ready or beyond. Used to validate the full MaaS lifecycle pipeline without physical hardware.'
+      _unit_purpose: 'Commissioning (pxe-test-vm-1): MaaS PXE-boots the Proxmox test
+        VM into a minimal environment, discovers its hardware, and records the inventory.
+        Short-circuits if machine is already Ready or beyond. Used to validate the
+        full MaaS lifecycle pipeline without physical hardware.'
       _wave: maas.lifecycle.commissioning
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/pxe-test-vm-1/commission/ready:
-      _unit_purpose: 'Ready (pxe-test-vm-1): Waits for MaaS to confirm the Proxmox test VM reached Ready state after commissioning. Configures network interfaces once Ready. Short-circuits if machine is already Allocated, Deploying, or Deployed.'
+      _unit_purpose: 'Ready (pxe-test-vm-1): Waits for MaaS to confirm the Proxmox
+        test VM reached Ready state after commissioning. Configures network interfaces
+        once Ready. Short-circuits if machine is already Allocated, Deploying, or
+        Deployed.'
       _wave: maas.lifecycle.ready
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/pxe-test-vm-1/commission/ready/allocated:
-      _unit_purpose: 'Allocated (pxe-test-vm-1): Reserves the Ready Proxmox test VM for this deployment. Sets the target OS/distro on the machine record. Short-circuits if already Allocated or beyond.'
+      _unit_purpose: 'Allocated (pxe-test-vm-1): Reserves the Ready Proxmox test VM
+        for this deployment. Sets the target OS/distro on the machine record. Short-circuits
+        if already Allocated or beyond.'
       _wave: maas.lifecycle.allocated
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/pxe-test-vm-1/commission/ready/allocated/deploying:
-      _unit_purpose: 'Deploying (pxe-test-vm-1): Triggers OS installation on the Proxmox test VM — MaaS writes the OS image to the VM disk, injects cloud-init user-data, and reboots into the installed OS. Short-circuits if already Deploying or Deployed.'
+      _unit_purpose: 'Deploying (pxe-test-vm-1): Triggers OS installation on the Proxmox
+        test VM — MaaS writes the OS image to the VM disk, injects cloud-init user-data,
+        and reboots into the installed OS. Short-circuits if already Deploying or
+        Deployed.'
       _wave: maas.lifecycle.deploying
     pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/pxe-test-vm-1/commission/ready/allocated/deploying/deployed:
-      _unit_purpose: 'Deployed (pxe-test-vm-1): Polls MaaS until the Proxmox test VM reaches Deployed state. Runs a power-on watchdog to recover the VM if it powers off mid-install. On Terraform destroy, releases the VM back to Ready.'
+      _unit_purpose: 'Deployed (pxe-test-vm-1): Polls MaaS until the Proxmox test
+        VM reaches Deployed state. Runs a power-on watchdog to recover the VM if it
+        powers off mid-install. On Terraform destroy, releases the VM back to Ready.'
       _wave: maas.lifecycle.deployed
     pwy-home-lab-pkg/_stack/null/pwy-homelab:
       _env: dev
@@ -274,7 +354,10 @@ pwy-home-lab-pkg:
       _region: pwy-homelab
     pwy-home-lab-pkg/_stack/null/pwy-homelab/configure-physical-machines:
       _tg_scripts_dir: maas-pkg/_tg_scripts
-      _unit_purpose: Commission and deploy all physical machines via MaaS. Aggregating unit for the full machine fleet — downstream units (install-proxmox, update-mesh-central) take a single dep here so adding/removing a machine requires no change to them.
+      _unit_purpose: Commission and deploy all physical machines via MaaS. Aggregating
+        unit for the full machine fleet — downstream units (install-proxmox, update-mesh-central)
+        take a single dep here so adding/removing a machine requires no change to
+        them.
       _wave: maas.machine.config.power
       machine_paths:
       - pwy-home-lab-pkg/_stack/maas/pwy-homelab/machines/ms01-01
@@ -283,29 +366,43 @@ pwy-home-lab-pkg:
     pwy-home-lab-pkg/_stack/null/pwy-homelab/local:
       _wave: local.updates
     pwy-home-lab-pkg/_stack/null/pwy-homelab/local/update-ssh-config:
-      _unit_purpose: Writes ~/.ssh/conf.d/dynamic_ssh_config with ProxyJump and hostname entries for all provisioned hosts. Runs last (wave local.updates) so it reflects the fully provisioned state.
+      _unit_purpose: Writes ~/.ssh/conf.d/dynamic_ssh_config with ProxyJump and hostname
+        entries for all provisioned hosts. Runs last (wave local.updates) so it reflects
+        the fully provisioned state.
     pwy-home-lab-pkg/_stack/null/pwy-homelab/maas/configure-db:
       _modules_dir: maas-pkg/_modules
       _tg_scripts_dir: maas-pkg/_tg_scripts
-      _unit_purpose: Configure the MaaS PostgreSQL database VM. Installs PostgreSQL, creates the maasdb database and user, configures remote access for the region controller (10.0.10.11).
+      _unit_purpose: Configure the MaaS PostgreSQL database VM. Installs PostgreSQL,
+        creates the maasdb database and user, configures remote access for the region
+        controller (10.0.10.11).
       _wave: maas.servers.all
     pwy-home-lab-pkg/_stack/null/pwy-homelab/maas/configure-plain-hosts:
       _tg_scripts_dir: maas-pkg/_tg_scripts
-      _unit_purpose: Configure OVS bridges on plain managed hosts (ms01-02 Rocky 9, ms01-03 Ubuntu 24.04) post-deploy. Reads bridges config from pwy-home-lab-pkg.yaml, installs openvswitch, and writes persistent NIC + IP config (netplan for Ubuntu, nmcli for Rocky). SSH via provisioning_ip + MaaS jump box (provisioning VLAN 10.0.12.x is not directly routable). Skipped on clean.
+      _unit_purpose: Configure OVS bridges on plain managed hosts (ms01-02 Rocky 9,
+        ms01-03 Ubuntu 24.04) post-deploy. Reads bridges config from pwy-home-lab-pkg.yaml,
+        installs openvswitch, and writes persistent NIC + IP config (netplan for Ubuntu,
+        nmcli for Rocky). SSH via provisioning_ip + MaaS jump box (provisioning VLAN
+        10.0.12.x is not directly routable). Skipped on clean.
       _wave: maas.machine.config.networking
     pwy-home-lab-pkg/_stack/null/pwy-homelab/maas/configure-rack:
       _modules_dir: maas-pkg/_modules
       _tg_scripts_dir: maas-pkg/_tg_scripts
-      _unit_purpose: Configure the MaaS rack controller VM. Configures provisioning NIC (static 10.0.12.2), installs MaaS snap (rack only), joins the region controller, configures IP forwarding and NAT masquerade, then runs MaaS API networking configuration (subnets, DHCP, reservations) on the region.
+      _unit_purpose: Configure the MaaS rack controller VM. Configures provisioning
+        NIC (static 10.0.12.2), installs MaaS snap (rack only), joins the region controller,
+        configures IP forwarding and NAT masquerade, then runs MaaS API networking
+        configuration (subnets, DHCP, reservations) on the region.
       _wave: maas.servers.all
     pwy-home-lab-pkg/_stack/null/pwy-homelab/maas/configure-region:
       _modules_dir: maas-pkg/_modules
       _tg_scripts_dir: maas-pkg/_tg_scripts
-      _unit_purpose: Configure the MaaS region controller VM. Installs MaaS snap (region only), creates admin account, imports boot images, configures commissioning scripts, installs smart-plug-proxy, syncs SSH keys to PVE hosts.
+      _unit_purpose: Configure the MaaS region controller VM. Installs MaaS snap (region
+        only), creates admin account, imports boot images, configures commissioning
+        scripts, installs smart-plug-proxy, syncs SSH keys to PVE hosts.
       _wave: maas.servers.all
       admin_email: admin@homelab.local
       admin_ssh_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHx+TZoIE4v2qQDhtYDHN/eGFdtl1Pea5j8WUV1klYXT pyoung@CFXL5YHY09
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHx+TZoIE4v2qQDhtYDHN/eGFdtl1Pea5j8WUV1klYXT
+        pyoung@CFXL5YHY09
       admin_username: admin
       db_name: maasdb
       db_user: maas
@@ -359,31 +456,43 @@ pwy-home-lab-pkg:
         release: noble
     pwy-home-lab-pkg/_stack/null/pwy-homelab/maas/sync-maas-api-key:
       _tg_scripts_dir: maas-pkg/_tg_scripts
-      _unit_purpose: Read the MaaS API key from the deployed server and write it to SOPS. Required before any MaaS provider Terraform operations can authenticate.
+      _unit_purpose: Read the MaaS API key from the deployed server and write it to
+        SOPS. Required before any MaaS provider Terraform operations can authenticate.
       _wave: maas.servers.all
     pwy-home-lab-pkg/_stack/null/pwy-homelab/mesh-central/configure-server:
       _tg_scripts_dir: mesh-central-pkg/_tg_scripts
-      _unit_purpose: Install and configure the MeshCentral server VM with Intel AMT ACM patches for out-of-band management of physical hosts.
+      _unit_purpose: Install and configure the MeshCentral server VM with Intel AMT
+        ACM patches for out-of-band management of physical hosts.
       _wave: vms.proxmox.utility.mesh-central
       admin_email: admin@homelab.local
       admin_username: admin
     pwy-home-lab-pkg/_stack/null/pwy-homelab/mesh-central/update-mesh-central:
       _tg_scripts_dir: mesh-central-pkg/_tg_scripts
-      _unit_purpose: Enroll all managed hosts into MeshCentral. Aggregating unit — depends on configure-physical-machines so adding/removing a machine requires no change here.
+      _unit_purpose: Enroll all managed hosts into MeshCentral. Aggregating unit —
+        depends on configure-physical-machines so adding/removing a machine requires
+        no change here.
       _wave: vms.proxmox.utility.mesh-central
     pwy-home-lab-pkg/_stack/null/pwy-homelab/proxmox:
       _tg_scripts_dir: proxmox-pkg/_tg_scripts
       _wave: hypervisor.proxmox.install
     pwy-home-lab-pkg/_stack/null/pwy-homelab/proxmox/configure-proxmox:
-      _unit_purpose: Configure all Proxmox nodes — VLAN-aware bridge, cloud_public subinterface, storage content types, Terraform API token, MaaS root SSH key sync.
+      _unit_purpose: Configure all Proxmox nodes — VLAN-aware bridge, cloud_public
+        subinterface, storage content types, Terraform API token, MaaS root SSH key
+        sync.
       _wave: hypervisor.proxmox.configure
     pwy-home-lab-pkg/_stack/null/pwy-homelab/proxmox/configure-proxmox-post-install:
-      _unit_purpose: Re-runs the same Proxmox configuration playbook scoped to nodes that were freshly installed (triggered by install-proxmox run_id, not config hash).
+      _unit_purpose: Re-runs the same Proxmox configuration playbook scoped to nodes
+        that were freshly installed (triggered by install-proxmox run_id, not config
+        hash).
       _wave: hypervisor.proxmox.configure
     pwy-home-lab-pkg/_stack/null/pwy-homelab/proxmox/install-proxmox:
-      _unit_purpose: Install Proxmox VE on all freshly MaaS-deployed Debian hosts (ms01-01/02/03). Aggregating unit — runs after configure-physical-machines so the full fleet is ready before installation begins.
+      _unit_purpose: Install Proxmox VE on all freshly MaaS-deployed Debian hosts
+        (ms01-01/02/03). Aggregating unit — runs after configure-physical-machines
+        so the full fleet is ready before installation begins.
     pwy-home-lab-pkg/_stack/null/pwy-homelab/proxmox/wait-for-proxmox:
-      _unit_purpose: Poll the Proxmox API on all nodes until reachable after installation. Gate that prevents any VM provisioning from starting before the hypervisor is up.
+      _unit_purpose: Poll the Proxmox API on all nodes until reachable after installation.
+        Gate that prevents any VM provisioning from starting before the hypervisor
+        is up.
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab:
       _env: dev
       _maas_server_cidr_prefix: 24
@@ -396,9 +505,13 @@ pwy-home-lab-pkg:
       _tg_scripts_dir: proxmox-pkg/_tg_scripts
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/ms01-01:
       _provider_proxmox_endpoint: https://10.0.10.116:8006
-      _unit_purpose: 'MinisForum MS-01 #1 — Proxmox VE node (node_name: ms01-01, IP: 10.0.10.116). Deployed by MaaS then converted to Proxmox by install-proxmox. Ancestor config for all ms01-01 ISO/snippet/VM resources.'
+      _unit_purpose: 'MinisForum MS-01 #1 — Proxmox VE node (node_name: ms01-01, IP:
+        10.0.10.116). Deployed by MaaS then converted to Proxmox by install-proxmox.
+        Ancestor config for all ms01-01 ISO/snippet/VM resources.'
       ansible_host: 10.0.12.237
-      ansible_ssh_common_args: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %h:%p ubuntu@10.0.12.2"
+      ansible_ssh_common_args: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+        -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+        -W %h:%p ubuntu@10.0.12.2"
       ansible_user: debian
       api_token_id: tg-token
       bridge_technology: vlan-aware
@@ -410,17 +523,27 @@ pwy-home-lab-pkg:
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/ms01-01/isos:
       _wave: hypervisor.proxmox.storage
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/ms01-01/isos/ubuntu-24:
-      _unit_purpose: Ubuntu 24.04 (Noble) cloud image uploaded to ms01-01 local storage. Used as the base image for cloud-init VMs on ms01-01.
+      _unit_purpose: Ubuntu 24.04 (Noble) cloud image uploaded to ms01-01 local storage.
+        Used as the base image for cloud-init VMs on ms01-01.
       file_name: noble-server-cloudimg-amd64.qcow2
       url: https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/ms01-01/snippets:
       _wave: hypervisor.proxmox.storage
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/ms01-01/snippets/guest-agent:
-      _unit_purpose: Cloud-init vendor-data snippet uploaded to ms01-01. Installs and starts qemu-guest-agent so Terraform can read VM IP addresses via the guest agent API.
-      guest_agent_cloud_init: "#cloud-config\nssh_pwauth: true\npackage_update: true\npackages:\n  - qemu-guest-agent\nruncmd:\n  - systemctl enable --now qemu-guest-agent\n  - |\n    for f in /run/systemd/network/10-netplan-*.network; do\n      [ -f \"$f\" ] || continue\n      dn=\"/etc/systemd/network/$(basename \"$f\").d\"\n      mkdir -p \"$dn\"\n      printf '[DHCPv4]\\nSendHostname=yes\\n' > \"$dn/99-hostname.conf\"\n    done\n    networkctl reload\n"
+      _unit_purpose: Cloud-init vendor-data snippet uploaded to ms01-01. Installs
+        and starts qemu-guest-agent so Terraform can read VM IP addresses via the
+        guest agent API.
+      guest_agent_cloud_init: "#cloud-config\nssh_pwauth: true\npackage_update: true\n\
+        packages:\n  - qemu-guest-agent\nruncmd:\n  - systemctl enable --now qemu-guest-agent\n\
+        \  - |\n    for f in /run/systemd/network/10-netplan-*.network; do\n     \
+        \ [ -f \"$f\" ] || continue\n      dn=\"/etc/systemd/network/$(basename \"\
+        $f\").d\"\n      mkdir -p \"$dn\"\n      printf '[DHCPv4]\\nSendHostname=yes\\\
+        n' > \"$dn/99-hostname.conf\"\n    done\n    networkctl reload\n"
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1:
       _provider_proxmox_endpoint: https://10.0.10.115:8006
-      _unit_purpose: 'HP Z4 workstation — pre-installed Proxmox VE node (node_name: pve, IP: 10.0.10.115). Not managed by MaaS or install-proxmox. Primary host for utility VMs (MaaS server, MeshCentral, image-maker) and most test VMs.'
+      _unit_purpose: 'HP Z4 workstation — pre-installed Proxmox VE node (node_name:
+        pve, IP: 10.0.10.115). Not managed by MaaS or install-proxmox. Primary host
+        for utility VMs (MaaS server, MeshCentral, image-maker) and most test VMs.'
       agent_enabled: true
       agent_timeout: 1m
       ansible_host: 10.0.10.115
@@ -428,7 +551,8 @@ pwy-home-lab-pkg:
       bridge_technology: vlan-aware
       cloud_init_ip_address: dhcp
       cloud_init_ssh_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHx+TZoIE4v2qQDhtYDHN/eGFdtl1Pea5j8WUV1klYXT pyoung@CFXL5YHY09
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHx+TZoIE4v2qQDhtYDHN/eGFdtl1Pea5j8WUV1klYXT
+        pyoung@CFXL5YHY09
       cloud_init_user: ubuntu
       datastore_iso: local
       datastore_vm: local-zfs
@@ -441,32 +565,46 @@ pwy-home-lab-pkg:
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/isos:
       _wave: external.proxmox.isos-and-snippets
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/isos/rocky-10:
-      _unit_purpose: Rocky Linux 10 cloud image uploaded to pve-1 local storage. Used as the base image for Rocky 10 cloud-init test VMs.
+      _unit_purpose: Rocky Linux 10 cloud image uploaded to pve-1 local storage. Used
+        as the base image for Rocky 10 cloud-init test VMs.
       file_name: Rocky-10-GenericCloud-Base.latest.x86_64.qcow2
       url: https://dl.rockylinux.org/pub/rocky/10/images/x86_64/Rocky-10-GenericCloud-Base.latest.x86_64.qcow2
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/isos/rocky-9:
-      _unit_purpose: Rocky Linux 9 cloud image uploaded to pve-1 local storage. Used as the base image for Rocky 9 cloud-init test VMs.
+      _unit_purpose: Rocky Linux 9 cloud image uploaded to pve-1 local storage. Used
+        as the base image for Rocky 9 cloud-init test VMs.
       file_name: Rocky-9-GenericCloud.latest.x86_64.qcow2
       url: https://dl.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/isos/rocky-9-installer:
-      _unit_purpose: Rocky Linux 9 minimal installer ISO uploaded to pve-1 local storage. Used by Packer for kickstart-based VM template builds on the image-maker.
+      _unit_purpose: Rocky Linux 9 minimal installer ISO uploaded to pve-1 local storage.
+        Used by Packer for kickstart-based VM template builds on the image-maker.
       file_name: Rocky-9.7-x86_64-minimal.iso
       url: https://dl.rockylinux.org/pub/rocky/9/isos/x86_64/Rocky-9.7-x86_64-minimal.iso
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/isos/ubuntu-24:
-      _unit_purpose: Ubuntu 24.04 (Noble) cloud image uploaded to pve-1 local storage. Used as the base image for Ubuntu cloud-init VMs and utility VMs (MaaS server, MeshCentral, image-maker).
+      _unit_purpose: Ubuntu 24.04 (Noble) cloud image uploaded to pve-1 local storage.
+        Used as the base image for Ubuntu cloud-init VMs and utility VMs (MaaS server,
+        MeshCentral, image-maker).
       file_name: noble-server-cloudimg-amd64.qcow2
       url: https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/isos/ubuntu-24-server:
-      _unit_purpose: Ubuntu 24.04 full server ISO uploaded to pve-1 local storage. Used by Packer for autoinstall-based VM template builds on the image-maker.
+      _unit_purpose: Ubuntu 24.04 full server ISO uploaded to pve-1 local storage.
+        Used by Packer for autoinstall-based VM template builds on the image-maker.
       file_name: ubuntu-24.04.2-live-server-amd64.iso
       url: https://releases.ubuntu.com/24.04.2/ubuntu-24.04.2-live-server-amd64.iso
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/snippets:
       _wave: external.proxmox.isos-and-snippets
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/snippets/guest-agent:
-      _unit_purpose: Cloud-init vendor-data snippet uploaded to pve-1. Installs and starts qemu-guest-agent so Terraform can read VM IP addresses via the guest agent API.
-      guest_agent_cloud_init: "#cloud-config\nssh_pwauth: true\npackage_update: true\npackages:\n  - qemu-guest-agent\nruncmd:\n  - systemctl enable --now qemu-guest-agent\n  - |\n    for f in /run/systemd/network/10-netplan-*.network; do\n      [ -f \"$f\" ] || continue\n      dn=\"/etc/systemd/network/$(basename \"$f\").d\"\n      mkdir -p \"$dn\"\n      printf '[DHCPv4]\\nSendHostname=yes\\n' > \"$dn/99-hostname.conf\"\n    done\n    networkctl reload\n"
+      _unit_purpose: Cloud-init vendor-data snippet uploaded to pve-1. Installs and
+        starts qemu-guest-agent so Terraform can read VM IP addresses via the guest
+        agent API.
+      guest_agent_cloud_init: "#cloud-config\nssh_pwauth: true\npackage_update: true\n\
+        packages:\n  - qemu-guest-agent\nruncmd:\n  - systemctl enable --now qemu-guest-agent\n\
+        \  - |\n    for f in /run/systemd/network/10-netplan-*.network; do\n     \
+        \ [ -f \"$f\" ] || continue\n      dn=\"/etc/systemd/network/$(basename \"\
+        $f\").d\"\n      mkdir -p \"$dn\"\n      printf '[DHCPv4]\\nSendHostname=yes\\\
+        n' > \"$dn/99-hostname.conf\"\n    done\n    networkctl reload\n"
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/test/test-kairos-rocky-9-vm:
-      _unit_purpose: Rocky Linux 9 VM booted from a Kairos ISO built by the image-maker. Validates the Kairos image pipeline for Rocky.
+      _unit_purpose: Rocky Linux 9 VM booted from a Kairos ISO built by the image-maker.
+        Validates the Kairos image pipeline for Rocky.
       _wave: vms.proxmox.from-kairos
       additional_tags:
       - role_test_vm_kairos
@@ -474,65 +612,75 @@ pwy-home-lab-pkg:
       iso_file_id: local:iso/kairos-rocky-9.iso
       skip_ssh_check: true
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/test/test-kairos-ubuntu-24-vm:
-      _unit_purpose: Ubuntu 24.04 VM booted from a Kairos ISO built by the image-maker. Validates the Kairos image pipeline for Ubuntu.
+      _unit_purpose: Ubuntu 24.04 VM booted from a Kairos ISO built by the image-maker.
+        Validates the Kairos image pipeline for Ubuntu.
       _wave: vms.proxmox.from-kairos
       additional_tags:
       - role_test_vm_kairos
       iso_file_id: local:iso/kairos-ubuntu-24.04.iso
       skip_ssh_check: true
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/test/test-packer-rocky-9-vm:
-      _unit_purpose: Rocky Linux 9 VM cloned from a Packer-built template. Validates the Packer kickstart pipeline end-to-end for Rocky.
+      _unit_purpose: Rocky Linux 9 VM cloned from a Packer-built template. Validates
+        the Packer kickstart pipeline end-to-end for Rocky.
       _wave: vms.proxmox.from-packer
       additional_tags:
       - role_test_vm_packer
       clone_vm_name: template-packer-rocky-9
       cloud_init_user: rocky
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/test/test-packer-ubuntu-24-vm:
-      _unit_purpose: Ubuntu 24.04 VM cloned from a Packer-built template. Validates the Packer autoinstall pipeline end-to-end for Ubuntu.
+      _unit_purpose: Ubuntu 24.04 VM cloned from a Packer-built template. Validates
+        the Packer autoinstall pipeline end-to-end for Ubuntu.
       _wave: vms.proxmox.from-packer
       additional_tags:
       - role_test_vm_packer
       clone_vm_name: template-packer-ubuntu-24
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/test/test-rocky-10-vm-1:
-      _unit_purpose: Rocky Linux 10 cloud-init test VM on pve-1. Validates Rocky 10 cloud image provisioning and SSH access.
+      _unit_purpose: Rocky Linux 10 cloud-init test VM on pve-1. Validates Rocky 10
+        cloud image provisioning and SSH access.
       _wave: vms.proxmox.from-web.rocky
       additional_tags:
       - role_test_vm_rocky
       cloud_init_user: rocky
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/test/test-rocky-9-vm-1:
-      _unit_purpose: Rocky Linux 9 cloud-init test VM on pve-1. Validates Rocky 9 cloud image provisioning and SSH access.
+      _unit_purpose: Rocky Linux 9 cloud-init test VM on pve-1. Validates Rocky 9
+        cloud image provisioning and SSH access.
       _wave: vms.proxmox.from-web.rocky
       additional_tags:
       - role_test_vm_rocky
       cloud_init_user: rocky
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/test/test-ubuntu-vm-1:
-      _unit_purpose: Ubuntu 24.04 cloud-init test VM on pve-1. Validates Ubuntu cloud image provisioning and SSH access.
+      _unit_purpose: Ubuntu 24.04 cloud-init test VM on pve-1. Validates Ubuntu cloud
+        image provisioning and SSH access.
       _wave: vms.proxmox.from-web.ubuntu
       additional_tags:
       - role_test_vm_ubuntu
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/test/test-ubuntu-vm-1-pwy:
-      _unit_purpose: Personal Ubuntu 24.04 test VM on pve-1. Kept separate from shared test VMs for independent experiments.
+      _unit_purpose: Personal Ubuntu 24.04 test VM on pve-1. Kept separate from shared
+        test VMs for independent experiments.
       _wave: vms.proxmox.from-web.ubuntu
       additional_tags:
       - role_test_vm_ubuntu
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/test/test-ubuntu-vm-1-pwy/setup-via-ssh:
-      _modules_dir: default-pkg/_modules
-      _unit_purpose: Runs a minimal post-provisioning script over SSH to verify cloud-init completed and the VM is reachable.
+      _modules_dir: _framework-pkg/_modules
+      _unit_purpose: Runs a minimal post-provisioning script over SSH to verify cloud-init
+        completed and the VM is reachable.
       setup_script: 'set -euo pipefail
 
         echo "Running setup on $(hostname) at $(date).." > ~/setup-output.out
 
         '
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/test/test-ubuntu-vm-1/setup-via-ssh:
-      _modules_dir: default-pkg/_modules
-      _unit_purpose: Runs a minimal post-provisioning script over SSH to verify cloud-init completed and the VM is reachable.
+      _modules_dir: _framework-pkg/_modules
+      _unit_purpose: Runs a minimal post-provisioning script over SSH to verify cloud-init
+        completed and the VM is reachable.
       setup_script: 'set -euo pipefail
 
         echo "Running setup on $(hostname) at $(date).." > ~/setup-output.out
 
         '
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/test/test-ubuntu-vm-2:
-      _unit_purpose: Second Ubuntu 24.04 cloud-init test VM on pve-1 (2 cores, 8 GB RAM). Used for multi-VM scenario testing.
+      _unit_purpose: Second Ubuntu 24.04 cloud-init test VM on pve-1 (2 cores, 8 GB
+        RAM). Used for multi-VM scenario testing.
       _wave: vms.proxmox.from-web.ubuntu
       additional_tags:
       - role_test_vm_ubuntu
@@ -541,7 +689,9 @@ pwy-home-lab-pkg:
       disk_size: 16
       memory_mb: 8192
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/utils/image-maker:
-      _unit_purpose: Image-maker VM on pve-1 (Ubuntu 24.04, 4 cores, 60 GB). Hosts Packer and Kairos build tooling. Builds VM templates and Kairos ISOs, then uploads results to Proxmox local storage.
+      _unit_purpose: Image-maker VM on pve-1 (Ubuntu 24.04, 4 cores, 60 GB). Hosts
+        Packer and Kairos build tooling. Builds VM templates and Kairos ISOs, then
+        uploads results to Proxmox local storage.
       _wave: vms.proxmox.custom-images.image-maker
       additional_tags:
       - role_image_maker
@@ -554,7 +704,8 @@ pwy-home-lab-pkg:
       packer_rocky_iso_file: local:iso/Rocky-9.7-x86_64-minimal.iso
       packer_ubuntu_iso_file: local:iso/ubuntu-24.04.2-live-server-amd64.iso
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/utils/maas-db-1:
-      _unit_purpose: MaaS PostgreSQL database VM on pve-1. Hosts the maasdb database backend for the MaaS region controller. Static IP 10.0.10.12.
+      _unit_purpose: MaaS PostgreSQL database VM on pve-1. Hosts the maasdb database
+        backend for the MaaS region controller. Static IP 10.0.10.12.
       _wave: maas.servers.all
       additional_tags:
       - role_maas_db
@@ -567,7 +718,9 @@ pwy-home-lab-pkg:
       disk_size: 20
       memory_mb: 4096
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/utils/maas-rack-1:
-      _unit_purpose: MaaS rack controller VM on pve-1. Serves DHCP/DNS/PXE on the provisioning VLAN (10.0.12.x). Management IP 10.0.10.13, provisioning IP 10.0.12.2 (configured via netplan by Ansible).
+      _unit_purpose: MaaS rack controller VM on pve-1. Serves DHCP/DNS/PXE on the
+        provisioning VLAN (10.0.12.x). Management IP 10.0.10.13, provisioning IP 10.0.12.2
+        (configured via netplan by Ansible).
       _wave: maas.servers.all
       additional_tags:
       - role_maas_rack
@@ -582,7 +735,8 @@ pwy-home-lab-pkg:
       network_vlan_id_2: 12
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/utils/maas-region-1:
       _browser_url: http://{ansible_host}:5240/MAAS/r/machines
-      _unit_purpose: MaaS region controller VM on pve-1. Hosts the MaaS API, region controller, and DHCP/DNS configuration. Static IP 10.0.10.11.
+      _unit_purpose: MaaS region controller VM on pve-1. Hosts the MaaS API, region
+        controller, and DHCP/DNS configuration. Static IP 10.0.10.11.
       _wave: maas.servers.all
       additional_tags:
       - role_maas_region
@@ -595,12 +749,17 @@ pwy-home-lab-pkg:
       disk_size: 40
       memory_mb: 8192
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/utils/mesh-central:
-      _unit_purpose: MeshCentral server VM on pve-1. Provides out-of-band management for physical hosts via Intel AMT ACM. Hosts the MeshCentral web UI.
+      _unit_purpose: MeshCentral server VM on pve-1. Provides out-of-band management
+        for physical hosts via Intel AMT ACM. Hosts the MeshCentral web UI.
       _wave: vms.proxmox.utility.mesh-central
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/utils/pxe-test-vm-1:
-      _unit_purpose: Blank VM on pve-1 used as the Proxmox side of the MaaS PXE pipeline test. Booted via network (VLAN 12) so MaaS can commission and deploy it. Paired with the MaaS machine entry of the same name.
+      _unit_purpose: Blank VM on pve-1 used as the Proxmox side of the MaaS PXE pipeline
+        test. Booted via network (VLAN 12) so MaaS can commission and deploy it. Paired
+        with the MaaS machine entry of the same name.
       _wave: maas.test.proxmox-vms
-      ansible_ssh_common_args: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %h:%p ubuntu@10.0.10.11"
+      ansible_ssh_common_args: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+        -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+        -W %h:%p ubuntu@10.0.10.11"
       boot_order:
       - net0
       - virtio0
@@ -611,13 +770,18 @@ pwy-home-lab-pkg:
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/utils/pxe-test-vm-1/maas-release:
       _modules_dir: maas-pkg/_modules
       _provider: 'null'
-      _unit_purpose: Releases the MaaS machine backing pxe-test-vm-1 when the VM is destroyed or recreated. Ensures MaaS resets to Ready state so the next wave can redeploy the OS cleanly.
+      _unit_purpose: Releases the MaaS machine backing pxe-test-vm-1 when the VM is
+        destroyed or recreated. Ensures MaaS resets to Ready state so the next wave
+        can redeploy the OS cleanly.
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-1/vms/utils/pxe-test-vm-1/setup-via-ssh:
-      _modules_dir: default-pkg/_modules
-      _unit_purpose: Post-deploy SSH step for the PXE test VM. Verifies the MaaS-deployed OS is SSH-reachable after deployment completes.
+      _modules_dir: _framework-pkg/_modules
+      _unit_purpose: Post-deploy SSH step for the PXE test VM. Verifies the MaaS-deployed
+        OS is SSH-reachable after deployment completes.
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-2:
       _provider_proxmox_endpoint: https://10.0.10.200:8006
-      _unit_purpose: 'Secondary server — pre-installed Proxmox VE node (node_name: pve-2, IP: 10.0.10.200). Not managed by MaaS or install-proxmox. Uses OVS bridge. Hosts pve-2 test VMs for multi-node coverage.'
+      _unit_purpose: 'Secondary server — pre-installed Proxmox VE node (node_name:
+        pve-2, IP: 10.0.10.200). Not managed by MaaS or install-proxmox. Uses OVS
+        bridge. Hosts pve-2 test VMs for multi-node coverage.'
       agent_enabled: true
       agent_timeout: 1m
       ansible_host: 10.0.10.200
@@ -625,7 +789,8 @@ pwy-home-lab-pkg:
       bridge_technology: ovs
       cloud_init_ip_address: dhcp
       cloud_init_ssh_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHx+TZoIE4v2qQDhtYDHN/eGFdtl1Pea5j8WUV1klYXT pyoung@CFXL5YHY09
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHx+TZoIE4v2qQDhtYDHN/eGFdtl1Pea5j8WUV1klYXT
+        pyoung@CFXL5YHY09
       cloud_init_user: ubuntu
       datastore_iso: local
       datastore_vm: local-zfs
@@ -637,26 +802,37 @@ pwy-home-lab-pkg:
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-2/isos:
       _wave: external.proxmox.isos-and-snippets
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-2/isos/ubuntu-22:
-      _unit_purpose: Ubuntu 22.04 (Jammy) cloud image uploaded to pve-2 local storage. Kept for testing or workloads that require the older LTS.
+      _unit_purpose: Ubuntu 22.04 (Jammy) cloud image uploaded to pve-2 local storage.
+        Kept for testing or workloads that require the older LTS.
       file_name: jammy-server-cloudimg-amd64.qcow2
       url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-2/isos/ubuntu-24:
-      _unit_purpose: Ubuntu 24.04 (Noble) cloud image uploaded to pve-2 local storage. Used as the base image for Ubuntu cloud-init VMs on pve-2.
+      _unit_purpose: Ubuntu 24.04 (Noble) cloud image uploaded to pve-2 local storage.
+        Used as the base image for Ubuntu cloud-init VMs on pve-2.
       file_name: noble-server-cloudimg-amd64.qcow2
       url: https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-2/snippets:
       _wave: external.proxmox.isos-and-snippets
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-2/snippets/guest-agent:
-      _unit_purpose: Cloud-init vendor-data snippet uploaded to pve-2. Installs and starts qemu-guest-agent so Terraform can read VM IP addresses via the guest agent API.
-      guest_agent_cloud_init: "#cloud-config\nssh_pwauth: true\npackage_update: true\npackages:\n  - qemu-guest-agent\nruncmd:\n  - systemctl enable --now qemu-guest-agent\n  - |\n    for f in /run/systemd/network/10-netplan-*.network; do\n      [ -f \"$f\" ] || continue\n      dn=\"/etc/systemd/network/$(basename \"$f\").d\"\n      mkdir -p \"$dn\"\n      printf '[DHCPv4]\\nSendHostname=yes\\n' > \"$dn/99-hostname.conf\"\n    done\n    networkctl reload\n"
+      _unit_purpose: Cloud-init vendor-data snippet uploaded to pve-2. Installs and
+        starts qemu-guest-agent so Terraform can read VM IP addresses via the guest
+        agent API.
+      guest_agent_cloud_init: "#cloud-config\nssh_pwauth: true\npackage_update: true\n\
+        packages:\n  - qemu-guest-agent\nruncmd:\n  - systemctl enable --now qemu-guest-agent\n\
+        \  - |\n    for f in /run/systemd/network/10-netplan-*.network; do\n     \
+        \ [ -f \"$f\" ] || continue\n      dn=\"/etc/systemd/network/$(basename \"\
+        $f\").d\"\n      mkdir -p \"$dn\"\n      printf '[DHCPv4]\\nSendHostname=yes\\\
+        n' > \"$dn/99-hostname.conf\"\n    done\n    networkctl reload\n"
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-2/vms/test/test-ubuntu-vm-1:
-      _unit_purpose: Ubuntu 24.04 cloud-init test VM on pve-2. Same purpose as the pve-1 variant but exercises multi-node Proxmox provisioning.
+      _unit_purpose: Ubuntu 24.04 cloud-init test VM on pve-2. Same purpose as the
+        pve-1 variant but exercises multi-node Proxmox provisioning.
       _wave: vms.proxmox.from-web.ubuntu
       additional_tags:
       - role_test_vm_ubuntu
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-2/vms/test/test-ubuntu-vm-1/setup-via-ssh:
-      _modules_dir: default-pkg/_modules
-      _unit_purpose: Runs a minimal post-provisioning script over SSH to verify cloud-init completed and the VM is reachable.
+      _modules_dir: _framework-pkg/_modules
+      _unit_purpose: Runs a minimal post-provisioning script over SSH to verify cloud-init
+        completed and the VM is reachable.
       setup_script: '#!/usr/bin/env bash
 
         set -euo pipefail
@@ -665,7 +841,8 @@ pwy-home-lab-pkg:
 
         '
     pwy-home-lab-pkg/_stack/proxmox/pwy-homelab/pve-nodes/pve-2/vms/test/test-ubuntu-vm-2:
-      _unit_purpose: Second Ubuntu 24.04 cloud-init test VM on pve-2 (2 cores, 8 GB RAM). Used for multi-VM scenario testing on pve-2.
+      _unit_purpose: Second Ubuntu 24.04 cloud-init test VM on pve-2 (2 cores, 8 GB
+        RAM). Used for multi-VM scenario testing on pve-2.
       _wave: vms.proxmox.from-web.ubuntu
       additional_tags:
       - role_test_vm_ubuntu
@@ -682,7 +859,12 @@ pwy-home-lab-pkg:
       _region: pwy-homelab
     pwy-home-lab-pkg/_stack/routeros/pwy-homelab/switches/crs317-pwy-homelab:
       _browser_url: http://10.0.11.5
-      _unit_purpose: 'MikroTik CRS317-1G-16S+RM 10GigE switch. VLAN-aware bridge1 providing 10G connectivity between Proxmox hosts (pve-1, ms01-01/02/03) and the lab network via Pro Max port 18 uplink (sfpplus16). Host cloud_public ports: pve-1 (sfpplus2), ms01-01 (sfpplus4), ms01-02 (sfpplus6) on VLAN 10. Storage ports (sfpplus1-9 odd) reserved for VLAN 14 — add when cables available. Management IP 10.0.11.5/24 on VLAN 11. MAC: 78:91:18:62:6a:ec.'
+      _unit_purpose: 'MikroTik CRS317-1G-16S+RM 10GigE switch. VLAN-aware bridge1
+        providing 10G connectivity between Proxmox hosts (pve-1, ms01-01/02/03) and
+        the lab network via Pro Max port 18 uplink (sfpplus16). Host cloud_public
+        ports: pve-1 (sfpplus2), ms01-01 (sfpplus4), ms01-02 (sfpplus6) on VLAN 10.
+        Storage ports (sfpplus1-9 odd) reserved for VLAN 14 — add when cables available.
+        Management IP 10.0.11.5/24 on VLAN 11. MAC: 78:91:18:62:6a:ec.'
       _wave: network.mikrotik
       hostname: crs317-pwy-homelab
       management_gateway: 10.0.11.1
@@ -730,7 +912,13 @@ pwy-home-lab-pkg:
       domain_name: homelab.local
       project_prefix: pwy-tg-stack
     pwy-home-lab-pkg/_stack/unifi/pwy-homelab/device:
-      _unit_purpose: UniFi switch and gateway port assignments. Maps each physical port on USW-Flex-2.5G-8, UniFi Pro Max 16-Port, and UDM to a port profile. ms01-01/02/03 port3 (AMT NIC) → flex ports 1/2/3 (amt_mgmt, VLAN 11 native). ms01-01/02/03 port4 (data/PXE NIC) → flex ports 4/5/6 (pxe_provisioning, VLAN 12 native — MaaS DHCP for PXE boot). Pro Max port 18 = uplink to MikroTik CRS317 10G switch (hypervisor_trunk so VLANs 10/11/12/14 reach the 10G fabric). Controls which VLANs each connected device can reach.
+      _unit_purpose: UniFi switch and gateway port assignments. Maps each physical
+        port on USW-Flex-2.5G-8, UniFi Pro Max 16-Port, and UDM to a port profile.
+        ms01-01/02/03 port3 (AMT NIC) → flex ports 1/2/3 (amt_mgmt, VLAN 11 native).
+        ms01-01/02/03 port4 (data/PXE NIC) → flex ports 4/5/6 (pxe_provisioning, VLAN
+        12 native — MaaS DHCP for PXE boot). Pro Max port 18 = uplink to MikroTik
+        CRS317 10G switch (hypervisor_trunk so VLANs 10/11/12/14 reach the 10G fabric).
+        Controls which VLANs each connected device can reach.
       devices:
         switch_flex:
           mac: 8c:30:66:ac:58:4f
@@ -826,7 +1014,10 @@ pwy-home-lab-pkg:
               port_profile: ''
           type: gateway
     pwy-home-lab-pkg/_stack/unifi/pwy-homelab/network:
-      _unit_purpose: 'UniFi VLAN definitions for the pwy-homelab network: cloud_public (10.0.10.0/24), management/pxe_and_mgmt (10.0.11.0/24, AMT static IPs only — no DHCP), provisioning (10.0.12.0/24, MaaS DHCP — PXE boot VLAN), guest (10.0.13.0/24), storage (10.0.14.0/24).'
+      _unit_purpose: 'UniFi VLAN definitions for the pwy-homelab network: cloud_public
+        (10.0.10.0/24), management/pxe_and_mgmt (10.0.11.0/24, AMT static IPs only
+        — no DHCP), provisioning (10.0.12.0/24, MaaS DHCP — PXE boot VLAN), guest
+        (10.0.13.0/24), storage (10.0.14.0/24).'
       vlans:
         cloud_public:
           dhcp_enabled: true
@@ -881,7 +1072,15 @@ pwy-home-lab-pkg:
           subnet: 10.0.14.0/24
           vlan_id: 14
     pwy-home-lab-pkg/_stack/unifi/pwy-homelab/port-profile:
-      _unit_purpose: 'UniFi port profiles. hypervisor_trunk: cloud_public native + pxe_and_mgmt/provisioning/storage tagged — for Proxmox hosts carrying all VLANs. amt_mgmt: management (VLAN 11) native, no tagged — for AMT NICs (static IPs only, no DHCP). pxe_provisioning: provisioning (VLAN 12) native, no tagged — for PXE/data NICs; MaaS serves DHCP here. pxe_provisioning_public: provisioning (VLAN 12) native + cloud_public (VLAN 10) tagged — for single-NIC machines that need PXE boot and a cloud_public VLAN subinterface (e.g. nuc-1). pxe_mgmt_public: legacy profile (VLAN 11 native + VLAN 10 tagged), kept for reference. public_only, storage_only: single-VLAN profiles.'
+      _unit_purpose: 'UniFi port profiles. hypervisor_trunk: cloud_public native +
+        pxe_and_mgmt/provisioning/storage tagged — for Proxmox hosts carrying all
+        VLANs. amt_mgmt: management (VLAN 11) native, no tagged — for AMT NICs (static
+        IPs only, no DHCP). pxe_provisioning: provisioning (VLAN 12) native, no tagged
+        — for PXE/data NICs; MaaS serves DHCP here. pxe_provisioning_public: provisioning
+        (VLAN 12) native + cloud_public (VLAN 10) tagged — for single-NIC machines
+        that need PXE boot and a cloud_public VLAN subinterface (e.g. nuc-1). pxe_mgmt_public:
+        legacy profile (VLAN 11 native + VLAN 10 tagged), kept for reference. public_only,
+        storage_only: single-VLAN profiles.'
       port_profiles:
         amt_mgmt:
           forward: customize
@@ -926,7 +1125,11 @@ pwy-home-lab-pkg:
   ssh_config:
     dynamic_config_path: ~/.ssh/conf.d/dynamic_ssh_config
   waves:
-  - description: 'Update the local SSH config (~/.ssh/conf.d/dynamic_ssh_config) with all provisioned hosts from the current Ansible inventory. Writes SSH Host stanzas for every host (HostName, User, ProxyJump where applicable) and ensures ~/.ssh/config includes the dynamic config file at the top. Idempotent and safe to re-run. Runs last so it reflects the full set of provisioned infrastructure.
+  - description: 'Update the local SSH config (~/.ssh/conf.d/dynamic_ssh_config) with
+      all provisioned hosts from the current Ansible inventory. Writes SSH Host stanzas
+      for every host (HostName, User, ProxyJump where applicable) and ensures ~/.ssh/config
+      includes the dynamic config file at the top. Idempotent and safe to re-run.
+      Runs last so it reflects the full set of provisioned infrastructure.
 
       '
     name: local.updates

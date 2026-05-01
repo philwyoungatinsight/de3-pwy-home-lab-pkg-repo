@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# Find files with skip-worktree (S) or assume-unchanged (h) index bits and
+# optionally clear them.  Either bit causes git status to report a file as
+# clean even when it is missing or modified on disk.
+set -euo pipefail
+
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+cd "$GIT_ROOT"
+
+# ── collect flagged files ──────────────────────────────────────────────────────
+
+skip_worktree=()
+assume_unchanged=()
+missing=()
+
+while IFS= read -r line; do
+    flag="${line:0:1}"
+    path="${line:2}"
+    case "$flag" in
+        S) skip_worktree+=("$path") ;;
+        h) assume_unchanged+=("$path") ;;
+    esac
+done < <(git ls-files -v)
+
+all_flagged=("${skip_worktree[@]}" "${assume_unchanged[@]}")
+
+for path in "${all_flagged[@]}"; do
+    [[ ! -e "$GIT_ROOT/$path" ]] && missing+=("$path")
+done
+
+# ── report ─────────────────────────────────────────────────────────────────────
+
+if [[ ${#all_flagged[@]} -eq 0 ]]; then
+    echo "No files with skip-worktree or assume-unchanged bits found."
+    exit 0
+fi
+
+echo "Files with index bits set (git status ignores their actual disk state):"
+echo ""
+
+if [[ ${#skip_worktree[@]} -gt 0 ]]; then
+    echo "  skip-worktree (S) — ${#skip_worktree[@]} file(s):"
+    for f in "${skip_worktree[@]}"; do
+        if [[ ! -e "$GIT_ROOT/$f" ]]; then
+            echo "    [MISSING ON DISK]  $f"
+        else
+            echo "                       $f"
+        fi
+    done
+    echo ""
+fi
+
+if [[ ${#assume_unchanged[@]} -gt 0 ]]; then
+    echo "  assume-unchanged (h) — ${#assume_unchanged[@]} file(s):"
+    for f in "${assume_unchanged[@]}"; do
+        if [[ ! -e "$GIT_ROOT/$f" ]]; then
+            echo "    [MISSING ON DISK]  $f"
+        else
+            echo "                       $f"
+        fi
+    done
+    echo ""
+fi
+
+if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "WARNING: ${#missing[@]} file(s) are missing from disk — git does not know they are gone."
+    echo ""
+fi
+
+# ── prompt ─────────────────────────────────────────────────────────────────────
+
+read -r -p "Clear all index bits (and restore missing files from HEAD)? [y/N] " answer
+[[ "$answer" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
+
+# Clear skip-worktree bits
+if [[ ${#skip_worktree[@]} -gt 0 ]]; then
+    printf '%s\n' "${skip_worktree[@]}" | xargs git update-index --no-skip-worktree
+    echo "Cleared skip-worktree on ${#skip_worktree[@]} file(s)."
+fi
+
+# Clear assume-unchanged bits
+if [[ ${#assume_unchanged[@]} -gt 0 ]]; then
+    printf '%s\n' "${assume_unchanged[@]}" | xargs git update-index --no-assume-unchanged
+    echo "Cleared assume-unchanged on ${#assume_unchanged[@]} file(s)."
+fi
+
+# Restore files that were missing from disk
+if [[ ${#missing[@]} -gt 0 ]]; then
+    printf '%s\n' "${missing[@]}" | xargs git checkout HEAD --
+    echo "Restored ${#missing[@]} missing file(s) from HEAD."
+fi
+
+echo ""
+echo "Done. Run 'git status' to verify."

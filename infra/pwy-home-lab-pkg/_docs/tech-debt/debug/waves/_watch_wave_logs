@@ -1,0 +1,29 @@
+#!/bin/bash
+# Source set_env.sh first: source $(git rev-parse --show-toplevel)/set_env.sh
+
+watch_waves() {
+    local log_file="${_WAVE_LOGS_DIR}/latest/run.log"
+
+    if [[ -z "${_WAVE_LOGS_DIR:-}" ]]; then
+        echo "Error: _WAVE_LOGS_DIR is not set — source set_env.sh first"
+        return 1
+    fi
+
+    if [[ ! -f "$log_file" ]]; then
+        echo "Error: Log file not found at $log_file"
+        return 1
+    fi
+
+    echo "Monitoring waves log... (Restarting if silent for 2s)"
+
+    while true; do
+        tail -99f "$log_file" &
+        local tail_pid=$!
+        sleep 2
+        kill "$tail_pid" 2>/dev/null || true
+        wait "$tail_pid" 2>/dev/null || true
+        sleep 0.5
+    done
+}
+
+watch_waves

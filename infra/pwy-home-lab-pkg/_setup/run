@@ -1,0 +1,95 @@
+#!/bin/bash
+# pwy-home-lab-pkg _setup/run — installs gh and glab; delegates seed args to ./seed.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+# shellcheck source=/dev/null
+. "$GIT_ROOT/set_env.sh"
+
+_usage() {
+    cat >&2 <<EOF
+Usage: $(basename "$0") [--login | --seed | --test | --status | --clean | --clean-all | --help]
+
+No arguments: install tools only.
+All other flags are delegated to ./seed.
+EOF
+    exit 1
+}
+
+_is_debian() { [ -f /etc/debian_version ]; }
+_is_el()     { [ -f /etc/redhat-release ]; }
+_has_brew()  { command -v brew >/dev/null 2>&1; }
+
+_setup_gh() {
+    if command -v gh >/dev/null 2>&1; then
+        echo "  gh: $(gh --version | head -1)"; return
+    fi
+    echo "==> Installing gh..."
+    if _has_brew; then
+        brew install gh
+    elif _is_debian; then
+        sudo mkdir -p -m 755 /etc/apt/keyrings
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+            | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
+        sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+            | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        sudo apt-get update -y && sudo apt-get install -y gh
+    elif _is_el; then
+        sudo dnf install -y 'dnf-command(config-manager)'
+        sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+        sudo dnf install -y gh
+    else
+        echo "ERROR: unsupported platform for automatic gh install." >&2
+        echo "       Install manually: https://cli.github.com" >&2
+        exit 1
+    fi
+    echo "  gh installed: $(gh --version | head -1)"
+}
+
+_setup_glab() {
+    if command -v glab >/dev/null 2>&1; then
+        echo "  glab: $(glab --version | head -1)"; return
+    fi
+    echo "==> Installing glab..."
+    # Use gh (already installed) to query GitHub API — avoids unauthenticated rate limits.
+    if _has_brew; then
+        brew install glab
+    elif _is_debian; then
+        GLAB_VERSION=$(gh api repos/profclems/glab/releases/latest --jq '.tag_name')
+        GLAB_VER_NUM="${GLAB_VERSION#v}"
+        curl -fsSLo /tmp/glab.deb \
+            "https://github.com/profclems/glab/releases/download/${GLAB_VERSION}/glab_${GLAB_VER_NUM}_Linux_x86_64.deb"
+        sudo dpkg -i /tmp/glab.deb && rm /tmp/glab.deb
+    elif _is_el; then
+        GLAB_VERSION=$(gh api repos/profclems/glab/releases/latest --jq '.tag_name')
+        GLAB_VER_NUM="${GLAB_VERSION#v}"
+        curl -fsSLo /tmp/glab.rpm \
+            "https://github.com/profclems/glab/releases/download/${GLAB_VERSION}/glab_${GLAB_VER_NUM}_Linux_x86_64.rpm"
+        sudo rpm -i /tmp/glab.rpm && rm /tmp/glab.rpm
+    else
+        echo "ERROR: unsupported platform for automatic glab install." >&2
+        echo "       Install manually: https://gitlab.com/gitlab-org/cli" >&2
+        exit 1
+    fi
+    echo "  glab installed: $(glab --version | head -1)"
+}
+
+_check_auth() {
+    python3 "$SCRIPT_DIR/git-auth-check.py"
+}
+
+_install_tools() {
+    echo "=== pwy-home-lab-pkg setup ==="
+    _setup_gh
+    _setup_glab
+    _check_auth
+    echo "=== pwy-home-lab-pkg setup complete ==="
+}
+
+case "${1:-}" in
+    -h|--help) _usage ;;
+    "")        _install_tools ;;
+    *)         exec "$SCRIPT_DIR/git-auth" "$@" ;;
+esac

@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""
+Purge old timestamped GCS status objects, keeping the last KEEP_LAST per group.
+
+Groups:
+  unit_status/<unit_path>/  — keep last _GCS_STATUS_KEEP_LAST .json objects (lexicographic)
+  wave_status/<wave_name>/  — keep last _GCS_STATUS_KEEP_LAST .json objects (lexicographic)
+
+Usage:
+  _GCS_STATUS_KEEP_LAST=5 DRY_RUN=1 ./run      # preview
+  _GCS_STATUS_KEEP_LAST=5 ./run                 # execute
+"""
+import os
+import subprocess
+import sys
+from collections import defaultdict
+from pathlib import Path
+
+KEEP_LAST = int(os.environ.get("_GCS_STATUS_KEEP_LAST", "5"))
+DRY_RUN   = os.environ.get("DRY_RUN", "0") == "1"
+PREFIXES  = ["unit_status/", "wave_status/"]
+
+
+def _bucket() -> str:
+    import yaml
+    pkg_dir = os.environ.get("_FRAMEWORK_PKG_DIR") or (
+        subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()
+        + "/infra/_framework-pkg"
+    )
+    with open(Path(pkg_dir) / "_config/framework_backend.yaml") as f:
+        d = yaml.safe_load(f)
+    return d["framework_backend"]["config"]["bucket"]
+
+
+def main() -> int:
+    bucket = _bucket()
+    total_deleted = 0
+    errors = 0
+
+    for prefix in PREFIXES:
+        gcs_prefix = f"gs://{bucket}/{prefix}"
+        result = subprocess.run(
+            ["gsutil", "ls", "-r", gcs_prefix],
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            print(f"ERROR listing {gcs_prefix}: {result.stderr.strip()}", file=sys.stderr)
+            errors += 1
+            continue
+
+        # Group URIs by their parent "directory" (unit_path or wave_name prefix).
+        groups: dict[str, list[str]] = defaultdict(list)
+        for line in result.stdout.splitlines():
+            uri = line.strip()
+            if not uri.endswith(".json"):
+                continue
+            # Parent = everything up to and including the second-to-last slash segment.
+            # e.g. gs://bucket/unit_status/pkg/_stack/unit/ → group key
+            parts = uri.rsplit("/", 1)
+            if len(parts) == 2:
+                groups[parts[0] + "/"].append(uri)
+
+        to_delete: list[str] = []
+        for group_key, uris in sorted(groups.items()):
+            uris_sorted = sorted(uris)  # ISO timestamps → lexicographic = chronological
+            excess = uris_sorted[:-KEEP_LAST] if len(uris_sorted) > KEEP_LAST else []
+            if excess:
+                print(f"  {group_key}: keeping {KEEP_LAST}/{len(uris_sorted)}, deleting {len(excess)}")
+                to_delete.extend(excess)
+
+        if not to_delete:
+            print(f"{prefix}: nothing to delete")
+            continue
+
+        print(f"{prefix}: {len(to_delete)} object(s) to delete")
+        if DRY_RUN:
+            for uri in to_delete:
+                print(f"  [dry-run] would delete: {uri}")
+        else:
+            rm = subprocess.run(
+                ["gsutil", "-m", "rm"] + to_delete,
+                capture_output=True, text=True,
+            )
+            if rm.returncode != 0:
+                print(f"ERROR deleting from {prefix}: {rm.stderr.strip()}", file=sys.stderr)
+                errors += 1
+            else:
+                total_deleted += len(to_delete)
+
+    if not DRY_RUN:
+        print(f"\nDone. Deleted {total_deleted} object(s) total.")
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

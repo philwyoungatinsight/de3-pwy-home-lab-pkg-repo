@@ -1,0 +1,128 @@
+#!/bin/bash
+# pwy-home-lab-pkg _setup/git-auth — interactive OAuth login for gh and glab.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+# shellcheck source=/dev/null
+. "$GIT_ROOT/set_env.sh"
+
+_usage() {
+    cat >&2 <<EOF
+Usage: $(basename "$0") <flag>
+
+  -l|--login      Interactive OAuth login for gh and glab
+  -b|--seed       Idempotent seed (skips if already authenticated)
+  -t|--test       Verify authentication (non-interactive)
+  -S|--status     Show auth status
+  -c|--clean      Log out of gh and glab
+  -C|--clean-all  Same as --clean
+  -h|--help       Print this message
+EOF
+    exit "${1:-1}"
+}
+
+_load_host_map() {
+    # Read host_type_map from framework_git_config.yaml via Python.
+    # Outputs "hostname tool" pairs, one per line.
+    python3 - <<'PYEOF'
+import os, sys, yaml
+from pathlib import Path
+
+git_root = Path(os.environ["_GIT_ROOT"])
+fw_cfg_pkg = os.environ.get("_FRAMEWORK_CONFIG_PKG_DIR", "")
+candidates = [git_root / "config" / "framework_git_config.yaml"]
+if fw_cfg_pkg:
+    candidates.append(Path(fw_cfg_pkg) / "_config" / "_framework_settings" / "framework_git_config.yaml")
+candidates.append(git_root / "infra" / "_framework-pkg" / "_config" / "_framework_settings" / "framework_git_config.yaml")
+for p in candidates:
+    if p.exists():
+        data = yaml.safe_load(open(p)) or {}
+        hmap = data.get("framework_git_config", {}).get("git-auth", {}).get("host_type_map", {})
+        for host, tool in hmap.items():
+            print(f"{host} {tool}")
+        sys.exit(0)
+PYEOF
+}
+
+_login() {
+    echo "=== pwy-home-lab-pkg: git auth login ==="
+    while IFS=" " read -r host tool; do
+        case "$tool" in
+        gh)
+            if gh auth status --hostname "$host" >/dev/null 2>&1; then
+                echo "  gh ($host): already authenticated — skipping"
+            else
+                echo "  gh ($host): logging in..."
+                gh auth login --hostname "$host" --web --git-protocol https
+            fi
+            ;;
+        glab)
+            if ! command -v glab >/dev/null 2>&1; then
+                echo "  glab ($host): not installed — run '_setup/run' first" >&2
+                continue
+            fi
+            if glab auth status --hostname "$host" >/dev/null 2>&1; then
+                echo "  glab ($host): already authenticated — skipping"
+            else
+                echo "  glab ($host): logging in..."
+                glab auth login --hostname "$host"
+            fi
+            ;;
+        esac
+    done < <(_load_host_map)
+    echo "=== login complete ==="
+}
+
+_seed() {
+    _login
+}
+
+_test() {
+    python3 "$SCRIPT_DIR/git-auth-check.py" --force
+}
+
+_status() {
+    while IFS=" " read -r host tool; do
+        case "$tool" in
+        gh)
+            if command -v gh >/dev/null 2>&1; then
+                gh auth status --hostname "$host"
+            else
+                echo "  gh ($host): not installed"
+            fi
+            ;;
+        glab)
+            if command -v glab >/dev/null 2>&1; then
+                glab auth status --hostname "$host"
+            else
+                echo "  glab ($host): not installed"
+            fi
+            ;;
+        esac
+    done < <(_load_host_map)
+}
+
+_clean() {
+    while IFS=" " read -r host tool; do
+        case "$tool" in
+        gh)   command -v gh   >/dev/null 2>&1 && gh   auth logout --hostname "$host" || true ;;
+        glab) command -v glab >/dev/null 2>&1 && glab auth logout --hostname "$host" || true ;;
+        esac
+    done < <(_load_host_map)
+}
+
+[[ $# -eq 0 ]] && _usage 0
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -l|--login)     _login;  shift ;;
+        -b|--seed)      _seed;   shift ;;
+        -t|--test)      _test;   shift ;;
+        -S|--status)    _status; shift ;;
+        -c|--clean)     _clean;  shift ;;
+        -C|--clean-all) _clean;  shift ;;
+        -h|--help)      _usage 0 ;;
+        *) echo "Unknown flag: $1" >&2; _usage ;;
+    esac
+done
