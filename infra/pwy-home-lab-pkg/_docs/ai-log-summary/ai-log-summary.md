@@ -4,6 +4,17 @@ Reverse-chronological summary of significant changes made by Claude in this repo
 
 ---
 
+## 2026-05-01 — Standardize examples-archive Across Individual Package Repos
+
+- Added `examples-archive/` directories with real runnable example units to all 9 provider package repos (aws, azure, gcp, image-maker, maas, mesh-central, mikrotik, proxmox, unifi)
+- Each `examples-archive` ancestor has `_skip_on_build: true` so examples are excluded from `./run --apply` by default; `make clean-all` still destroys them
+- Mikrotik: `git mv` renamed `routeros/example-lab` → `routeros/examples-archive/example-lab` and split config_params ancestor
+- MaaS: added full 6-stage lifecycle tree (machine → commission → ready → allocated → deploying → deployed) with AMT power config example
+- Mesh-central: fixed orphaned `config_params` pointing to non-existent `proxmox/example-lab/` path — created the directory and updated the config key
+- `de3-framework-pkg-repo: skip-parameters.md` updated to document `examples-archive` as the standard naming convention
+
+---
+
 ## 2026-05-01 — Fix set_env.sh git root detection for symlinked package dirs
 
 - `./run -A de3-gui` failed because `infra/de3-gui-pkg` is a symlink into `de3-gui-pkg-repo`; git resolved the physical path and returned the wrong toplevel
