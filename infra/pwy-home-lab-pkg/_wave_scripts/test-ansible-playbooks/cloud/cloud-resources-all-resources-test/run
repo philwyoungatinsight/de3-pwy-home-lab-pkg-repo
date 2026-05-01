@@ -1,0 +1,16 @@
+#!/bin/bash
+# Wave test: verify cloud test-bucket units have bucket_name output.
+set -euo pipefail
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+. "$GIT_ROOT/set_env.sh"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+. "$_UTILITIES_DIR/bash/init.sh"
+
+export PYTHON_VERSION='python3.12'
+INVENTORY_FILE="${_DYNAMIC_DIR}/ansible/inventory/hosts.yml"
+
+_activate_ansible_locally "$(dirname "$(dirname "$SCRIPT_DIR")")"
+
+ANSIBLE_HOST_KEY_CHECKING=False \
+ANSIBLE_PYTHON_INTERPRETER=auto \
+    ansible-playbook --inventory "${INVENTORY_FILE}" "${SCRIPT_DIR}/playbook.yaml"

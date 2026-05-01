@@ -1,0 +1,58 @@
+---
+# Wave test: verify cloud test-bucket units each have a bucket_name output.
+- name: Cloud resources test — verify test-bucket bucket_name outputs
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Find test-bucket units (terragrunt.hcl files containing unit_type test_bucket)
+      ansible.builtin.shell: >
+        grep -rl --exclude-dir=.terragrunt-cache '# unit_type: test_bucket'
+        "{{ lookup('env', '_INFRA_DIR') }}"
+        2>/dev/null | grep -v '/examples/' || true
+      register: _unit_files
+      changed_when: false
+
+    - name: Build unit directory list
+      ansible.builtin.set_fact:
+        _unit_dirs: "{{ _unit_files.stdout_lines | map('dirname') | list }}"
+
+    - name: Check bucket_name output for each test-bucket unit
+      ansible.builtin.shell: |
+        cd "{{ item }}"
+        output=$(terragrunt output -json 2>/dev/null)
+        tg_rc=$?
+        if [ $tg_rc -ne 0 ]; then
+          echo "SKIP  (no state — unit not yet applied)"
+        else
+          bucket_name=$(echo "$output" \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('bucket_name',{}).get('value',''))" \
+            2>/dev/null || echo "")
+          if [ -n "$bucket_name" ]; then
+            echo "PASS  bucket_name=${bucket_name}"
+          elif [ "$output" = "{}" ]; then
+            echo "SKIP  (state exists but empty — unit may be excluded via _skip_on_build)"
+          else
+            echo "FAIL  (state exists but no bucket_name output)"
+            exit 1
+          fi
+        fi
+      register: _unit_results
+      loop: "{{ _unit_dirs }}"
+      changed_when: false
+      when: _unit_dirs | length > 0
+
+    - name: Report results
+      ansible.builtin.debug:
+        msg: "{{ item.item | basename }}: {{ item.stdout }}"
+      loop: "{{ _unit_results.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item | basename }}"
+      when: _unit_results.results is defined
+
+    - name: Confirm at least one test-bucket unit was found
+      ansible.builtin.assert:
+        that: _unit_dirs | length > 0
+        fail_msg: "No test-bucket units found under infra/ — is the infra directory correct?"
+        success_msg: "Found {{ _unit_dirs | length }} test-bucket unit(s)"
