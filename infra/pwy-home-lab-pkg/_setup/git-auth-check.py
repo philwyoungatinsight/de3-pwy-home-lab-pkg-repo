@@ -24,7 +24,7 @@ from urllib.parse import urlparse
 
 def _load_cfg(git_root: Path) -> dict:
     """Load framework_git_config.yaml via 3-tier lookup."""
-    fw_cfg_pkg = os.environ.get("_FRAMEWORK_CONFIG_PKG_DIR", "")
+    fw_cfg_pkg = os.environ.get("_MAIN_PKG_DIR", "")
 
     candidates = [
         git_root / "config" / "framework_git_config.yaml",
